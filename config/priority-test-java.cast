@@ -1,0 +1,7 @@
+HOST localhost
+
+SUBARCHITECTURE	stage.subarch 
+JAVA WM cast.architecture.SubarchitectureWorkingMemory --debug
+JAVA TM cast.architecture.AlwaysPositiveTaskManager  
+JAVA UM straight.man comedyarch.StraightMan -s "what's brown and sticky" 
+JAVA MG receiver cast.examples.PriorityTest --log

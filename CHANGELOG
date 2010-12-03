@@ -1,0 +1,276 @@
+2.1.9
+
+2010-04-04  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Changed type of object written to WM to Ice.Object from Ice.ObjectImpl
+
+
+2010-01-05  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Refactored Java getIceServer code to allow static class from
+    external clients. New method CASTUtils.getCASTIceServer does this
+    for you. See cast.examples.ExternalClientTest for example code.
+
+  * Added logException to Java CASTComponent and used to ensure stack
+    traces are sent to loggers. All CAST-level exceptions are now sent
+    to log level ERROR.
+
+2.1.8
+
+2009-10-22  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Added locks for c++ filter registration code.
+
+2.1.7
+
+2009-10-22  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Fixed a bug in Java WM where it wouldn't check for entry deletion
+    after readBlock during a read.
+
+  * Made default logging pattern setup a little smarted. Still not
+    perfect though.
+
+  * Made getIceServer and registerIceServer public in CASTComponent.
+
+  * Build types now default to debug.
+
+2.1.6
+
+2009-10-12  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Stopped incorrect ConsistencyException being generated due to ==
+    check on component id in Java WM.
+
+  * Made some locking stuff public in Java component hierarchy.
+
+2.1.5
+
+2009-10-08  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * All printing from C++ and Java components (i.e. the println, log
+    and debug methods) is now handled by log4cxx and log4j
+    respectively. This means CAST now requires these packages at
+    compile and runtime.
+
+    For a basic understanding of how the above logging packages work,
+    see http://logging.apache.org/log4cxx/ and
+    http://logging.apache.org/log4j/. 
+
+    Each CAST component uses its own named logger which is named
+    <subarchitecture ID>.<component ID> or just <component ID> in the
+    case of standalone components. This setup allows you to configure
+    logging output at the component, subarchitecture or system level
+    using log4*'s configuration mechanisms. The --log and --debug in
+    CAST files are still supported, and these override any values set
+    via log4*'s configuration mechanisms.
+
+    The default setup recreates the previous output forms, but this is
+    now configurable via properties. An example file log4j.properties
+    is included under ./config which demonstrates the basic
+    approach. To force CAST to use the details in such a config file
+    (rather than the default logging setup) you can use one of the
+    following options (which are checked in this order)
+
+    1) Either indicate a file with any name using the environment
+    variable CAST_LOGGING_PROPERTIES.
+
+    2) Name your config file log4j.properties and put it in the
+    directory you're running cast-server from.
+
+    3) Put your config file in your home dir as .log4j.properties
+    (e.g. ~/.log4j.properties).
+
+
+    Some of the principle uses of this file will be to configure log
+    levels for output, and change the output formatting (you can also
+    setup additional output sources, called appenders). To change the
+    log level of a subarchitecture called nav.sa, you can use the
+    following config property:
+
+    log4j.logger.nav.sa=TRACE
+
+    To change just the display component in the nav.sa you can do:
+
+    log4j.logger.nav.sa.display=TRACE
+
+    In terms of log levels, the mapping between CAST calls are log4j
+    log levels is as follows: println == Level.INFO, log ==
+    Level.DEBUG and debug == Level.TRACE.
+
+    To change the output layout of the logging, you can use the
+    ConversionPattern config option. CAST uses a subclass of the
+    PatternLayout so any option used by that is usable by
+    CAST. Additionally, CAST introduces the following conversion
+    pattern flags:
+
+    %i = component id
+    %s = subarchitecture id
+    %a = CAST time
+    %P = cast logging level (derived using the mapping above)
+    %S = start colouring output	     
+    %E = end colouring output
+    
+    Thus the following pattern recreates the previous CAST output format:
+
+    log4j.appender.console.layout.ConversionPattern=%S[%P%i: %m]%E%n
+
+    In addition to logging from a component, you can use getLogger()
+    in CASTComponent to return the logger instance which the component
+    is using, and pass this to other components for logging where no
+    component is available. You can also use
+    ComponentLogger.getLogger(<name>) to get a new named logger
+    instance of the CAST-specific logger. This should happily
+    interoperate with the Logger.getLogger, if you want to use a
+    non-CAST logger. The ComponentLogger uses an additional class
+    called LogAdditions which passes extra information to the
+    logger. Each component has a getLogAdditions() method for getting
+    this, although you can also create your own. 
+
+    To log from a component you can use the println log and debug
+    methods as previously. Alternatively, you can call the logger
+    directly. In Java use some variation on
+    myComponentInstance.getLogger().<logger
+    method>(stuff,myComponentInstance.getLogAdditions()). In C++ see
+    the CAST_INFO etc. macros defined in CASTComponent.hpp.
+
+2009-10-04  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * CAST files (i.e. the config files) can now recursively include
+    other CAST files. Just use the line
+
+    INCLUDE <filename>
+
+    to include <filename> inline in the parent file. You can either
+    use absolute paths or relative ones. If relative, they are
+    interpreted as relative *to the parent file*, not the client. This
+    should allow greater portability of config files. For an example
+    see config/comedian-architecture-includes.cast
+
+2009-10-03  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Change events now include CASTime timestamps. They specify the
+    time the event was generated.
+
+2009-10-03  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Change receivers can now be assigned a priority. This affects the
+    order in which change receivers associated with the same type of
+    filter within a single component receive events. This does not
+    influence the order in which different components receive events.
+
+2009-09-22  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Unlocking with exception handling in Java WM.
+
+2.1.4
+
+2009-09-22  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Fixed some bugs in read-write locking to WM read and write methods!
+
+2.1.3
+
+2009-09-??  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Added read-write locking to WM read and write methods.
+
+2.1.2
+
+2009-09-09  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Added version reporting on start-up to all servers.
+
+  * Fixed WorkingMemoryChangeFilterComparator to not make incorrect
+    assumptions about id string order in the supertypes list. Turns
+    out they are in alphabetical order, not inheritance order. Search
+    through these is now done use binary search.
+
+2009-09-08  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Made various methods (prints, wm writes, locks) in the component
+    hierarchy public to allow components to be used as objects more
+    effectively.
+
+2.1.1
+
+2009-09-08  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Fixed a bug in C++ WM where it generated the wrong change event
+    supertypes of a deleted entry.
+
+2.1.0
+
+2009-09-01  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Stopped the java AlwaysPositiveTaskManager from locking during
+    stop(). Locking has been previously moved to the CASTComponent
+    stop method.
+
+previously on CAST...
+
+  * the cast client now checks the version of the server before
+    creating a component. 
+
+  * lockComponent now called at beginning of stop calls, i.e. the
+    component is locked when it enters its stop() method
+
+  * Python support has been added for standalone components. This
+    allows developers to create python CASTComponents which can be run
+    as part of a CAST system and register and resolve ice servers via
+    the CAST mechanisms. Python component can be added to a CAST file
+    using the following sytax:
+
+    COMPONENT PYTHON <component id>  <path.to.ComponentFile>
+
+    e.g.
+
+    COMPONENT PYTHON py.comp cast.ExampleComponent
+
+    The <path.to> part uses the same assumptions as Java packages, so
+    everything except the final entry is a directory name, and the
+    final entry is file name which contains a class of the same
+    name. So the example above (cast.ExampleComponent) corresponds to
+    cast/ExampleComponent.py (which you can find under
+    src/python). Each subdirectory needs to be a python module, thus
+    contain an __init__.py file. There appear to be some bugs in this
+    mechanism, so report them if you see them. For examples of python
+    components see config/single-component-python.cast and
+    config/direct-test-python.cast.
+
+    The python packages for CAST are installed using python
+    distutils. This means that they usually go in the correct python
+    search path automatically.
+
+
+2.0.2
+
+Helpers are now provided for registering and resolving ice servers
+(i.e. connections between components that don't go via working
+memory). You can find generic registerIceServer and getIceServer
+methods in CASTComponent which do this for any server type and
+addressing mechanism you want. However, there are also versions of
+these methods which require only a component ID (the first string arg
+on a line in a cat file) and an interface type. These are simpler to
+use and register and resolve servers based on only the id of the
+component providing the server (i.e. the string available via
+getComponentID() which is specified in the cast file) and a template
+parameter for the interface type. You can see examples of this in
+action under src/*/cast/examples & config/direct-test-*.cast. One of
+the advantages of using this method is that Ice servants are
+automatically removed from a component when it is shut down (on the
+destroy() call) allowing the cast-server to be reused by repeated
+client calls.
+
+
+
+2.0.1
+
+Cached type strings in CASTUtils.typeName(Class) for efficiency
+
+Type-based change filters can now match against types within the type
+hierarchy of a particular class. E.g. given the hierarchy A -> B -> C
+you could filter for type C to only receive changes relating to
+instances of this class, type B to receive changes relating to
+instances of B and C, or type A to receive changes relating to any
+member of the hierarchy.

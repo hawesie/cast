@@ -1,0 +1,3 @@
+HOST localhost 
+
+COMPONENT PYTHON py.comp cast.ExampleComponent

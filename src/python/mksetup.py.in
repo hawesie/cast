@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+# vim:set fileencoding=utf-8 sw=4 ts=8 et:vim
+import sys
+
+f=open(sys.argv[1], 'r')
+lines = f.readlines()
+f.close()
+pairs={
+    '${CAST_VERSION}': "@CAST_VERSION@",
+    '${PACKAGE_DIR}': "@PACKAGE_DIR@",
+    '${EXT_SRC_DIR}': "@EXT_SRC_DIR@",
+    '${LOG4CXX_LIBRARIES}': "@LOG4CXX_LIBRARIES@",
+    '${INCLUDE_DIRS_LIST}': "@INCLUDE_DIRS_LIST@".strip(', '),
+    '${LIBRARY_DIRS_LIST}': "@LIBRARY_DIRS_LIST@".strip(', '),
+}
+for i in xrange(len(lines)):
+    for k in pairs.keys():
+        lines[i] = lines[i].replace(k, pairs[k])
+
+f=open(sys.argv[2], 'w')
+for line in lines: f.write(line)
+f.close()

@@ -1,0 +1,5 @@
+SUBARCHITECTURE stage.subarch 
+CPP WM SubarchitectureWorkingMemory  --log --debug
+CPP TM AlwaysPositiveTaskManager #--log --debug
+JAVA UM straight.man comedyarch.StraightMan -s "what's brown and sticky" --log --debug
+INCLUDE funny.cast

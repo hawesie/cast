@@ -1,0 +1,8 @@
+SUBARCHITECTURE director.subarch
+#CPP WM SubarchitectureWorkingMemory  --log --debug
+JAVA WM cast.architecture.SubarchitectureWorkingMemory  --log --debug
+CPP TM AlwaysPositiveTaskManager #--log --debug
+JAVA MG ass.director comedyarch.AssistantDirector --log #--debug
+JAVA MG director comedyarch.Director --audience audience.subarch --log  #--debug
+
+
