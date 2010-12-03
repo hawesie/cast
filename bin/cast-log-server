@@ -1,0 +1,33 @@
+#!/bin/sh
+
+if [ "$1" ]; then
+    propfile="$1"
+else
+    propfile="/tmp/log4j-server.$USER.props"
+    cat > $propfile <<EOF
+log4j.rootLogger=TRACE, console
+
+log4j.appender.console=org.apache.log4j.ConsoleAppender
+log4j.appender.console.layout=org.apache.log4j.xml.XMLLayout
+EOF
+fi
+
+#try to use gdate first for guaranteed existence of -R option (on OSX)
+DATE_CMD=gdate
+if ! type $DATE_CMD >&/dev/null; then
+    DATE_CMD=date
+fi
+
+trap 'echo "</log4j:logsequence>";exit' INT TERM PIPE QUIT ABRT HUP 
+
+PORT=48143
+
+##############################################################################
+echo "starting log4j socket server on port $PORT">&2
+
+echo '<?xml version="1.0" encoding="UTF-8"?>'
+echo "<log4j:logsequence xmlns:log4j=\"http://jakarta.apache.org/log4j/\" user=\"$USER\" time=\"`$DATE_CMD -R`\">"
+java org.apache.log4j.net.SimpleSocketServer $PORT $propfile
+
+
+

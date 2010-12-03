@@ -1,0 +1,7 @@
+HOST localhost
+
+SUBARCHITECTURE	stage.subarch 
+CPP WM SubarchitectureWorkingMemory --debug
+CPP TM AlwaysPositiveTaskManager 
+CPP UM straight.man StraightMan -s "what's brown and sticky"  --debug
+CPP MG receiver PriorityTester --debug

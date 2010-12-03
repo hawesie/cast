@@ -1,0 +1,32 @@
+from distutils.core import setup, Extension
+setup(
+     name='cast',
+     version='${CAST_VERSION}',
+     package_dir={
+          '': '${PACKAGE_DIR}'
+     },
+     packages=[
+          'cast',
+          'cast/cdl',
+          'cast/cdl/testing',
+          'cast/interfaces',
+          'cast/examples',
+          'cast/examples/autogen'
+     ],
+     py_modules=[
+          'CDL_ice',
+          'ComponentServer',
+          'cast/core',
+          'cast/SimpleServer',
+          'cast/SimpleAggregateServer',
+          'cast/WordServerClient'
+     ],
+     ext_modules=[
+          Extension(
+               'cast.pylog4cxx',
+               ['${EXT_SRC_DIR}/pylog4cxx.cpp'],
+               include_dirs=[${INCLUDE_DIRS_LIST}],
+               libraries=['${LOG4CXX_LIBRARIES}',${ICE_LIBS_LIST}, 'CASTCore'],
+               library_dirs=[${LIBRARY_DIRS_LIST}]
+          )]
+)
