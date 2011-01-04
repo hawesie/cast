@@ -7,12 +7,13 @@
 # Date:
 # 06/2009
 
+# Note: import CDL_ice must come _after_ import cast otherwise Ice will create a new
+# module named 'cast' and the directory 'cast' will not be imported. (Py 2.6.6, Ice 3.3.1)
 import sys
 import Ice
-import CDL_ice
 import cast
 import cast.pylog4cxx as pylog4cxx
-
+import CDL_ice
 
 
 class CASTComponentFactory(cast.interfaces.ComponentFactory):
