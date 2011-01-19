@@ -833,17 +833,13 @@ public class CASTConfigParser {
 			//System.out.println(" ... not matched: " + line);
 			return i;
 		}
+		String cmd = m.group(1);
 		String token = m.group(2);
-		if (m.group(1).equals(CMD_VARDEFAULT)) {
-			if (m_configVars.containsKey(token)) {
-				//System.out.println(token + " ... already defined ");
-				return i;
-			}
-		}
 		String value = m.group(3);
-		if (value.equals("<multiline>")) {
+		if (value.startsWith("<multiline>")) {
 			i++;
-			value = "";
+			if (value.length() < 12) value = "";
+			else value = value.substring(11).trim();
 			while(i < _lines.size()) {
 				line = (String) _lines.get(i);
 				line = line.trim();
@@ -853,6 +849,12 @@ public class CASTConfigParser {
 					else value = value + " " + line;
 				}
 				i++;
+			}
+		}
+		if (cmd.equals(CMD_VARDEFAULT)) {
+			if (m_configVars.containsKey(token)) {
+				//System.out.println(token + " ... already defined ");
+				return i;
 			}
 		}
 		value = replaceVars(value);
