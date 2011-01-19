@@ -108,6 +108,10 @@ public class CASTConfigParser {
 
 	public static final String SUBARCH_HEADER = "SUBARCHITECTURE";
 
+	public static final String VAR_CURRENT_DIR = "CURRENT_DIR";
+
+	public static final String VAR_CONFIG_DIR = "CONFIG_DIR";
+
 	private static String m_lastParse = "";
 
 	private static String m_currentFile;
@@ -1161,6 +1165,8 @@ public class CASTConfigParser {
 		BufferedReader reader = new BufferedReader(fileRead);
 		StringBuffer sb = new StringBuffer();
 
+		_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + configFile.getAbsoluteFile().getParent());
+
 		String line;
 		while (reader.ready()) {
 			line = reader.readLine().trim();
@@ -1169,6 +1175,7 @@ public class CASTConfigParser {
 				String includeFile = parseInclude(line, configFile.getParent());
 				//recurse into include
 				readFile(includeFile, _lines);
+				_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + configFile.getAbsoluteFile().getParent());
 			} else {
 				_lines.add(line);
 				sb.append(line);
@@ -1258,9 +1265,9 @@ public class CASTConfigParser {
 			m_architecture = new ArchitectureConfiguration();
 
 			File configFile = new File(_filename);
-			m_configVars.put("CONFIG_DIR", configFile.getAbsoluteFile().getParent());
+			m_configVars.put(VAR_CONFIG_DIR, configFile.getAbsoluteFile().getParent());
 			expandVars(lines);
-			System.out.println("CONFIG_DIR=" + m_configVars.get("CONFIG_DIR"));
+			System.out.println(VAR_CONFIG_DIR + "=" + m_configVars.get(VAR_CONFIG_DIR));
 
 			processLines(lines);
 			m_extras = parseExtras(lines);
