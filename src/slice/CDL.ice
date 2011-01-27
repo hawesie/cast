@@ -7,7 +7,7 @@ module cast
   module cdl
   {
 
-    const string CASTRELEASESTRING = "2.1.11 (Lustreless)";
+    const string CASTRELEASESTRING = "2.1.12 (Don't Haunt This Place)";
 
     const int JAVASERVERPORT = 10111;
     const int CPPSERVERPORT = 10211;
