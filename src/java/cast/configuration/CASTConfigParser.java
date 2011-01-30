@@ -108,6 +108,10 @@ public class CASTConfigParser {
 
 	public static final String SUBARCH_HEADER = "SUBARCHITECTURE";
 
+	public static final String VAR_CURRENT_DIR = "CURRENT_DIR";
+
+	public static final String VAR_CONFIG_DIR = "CONFIG_DIR";
+
 	private static String m_lastParse = "";
 
 	private static String m_currentFile;
@@ -833,17 +837,13 @@ public class CASTConfigParser {
 			//System.out.println(" ... not matched: " + line);
 			return i;
 		}
+		String cmd = m.group(1);
 		String token = m.group(2);
-		if (m.group(1).equals(CMD_VARDEFAULT)) {
-			if (m_configVars.containsKey(token)) {
-				//System.out.println(token + " ... already defined ");
-				return i;
-			}
-		}
 		String value = m.group(3);
-		if (value.equals("<multiline>")) {
+		if (value.startsWith("<multiline>")) {
 			i++;
-			value = "";
+			if (value.length() < 12) value = "";
+			else value = value.substring(11).trim();
 			while(i < _lines.size()) {
 				line = (String) _lines.get(i);
 				line = line.trim();
@@ -853,6 +853,12 @@ public class CASTConfigParser {
 					else value = value + " " + line;
 				}
 				i++;
+			}
+		}
+		if (cmd.equals(CMD_VARDEFAULT)) {
+			if (m_configVars.containsKey(token)) {
+				//System.out.println(token + " ... already defined ");
+				return i;
 			}
 		}
 		value = replaceVars(value);
@@ -1159,6 +1165,8 @@ public class CASTConfigParser {
 		BufferedReader reader = new BufferedReader(fileRead);
 		StringBuffer sb = new StringBuffer();
 
+		_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + configFile.getAbsoluteFile().getParent());
+
 		String line;
 		while (reader.ready()) {
 			line = reader.readLine().trim();
@@ -1167,6 +1175,7 @@ public class CASTConfigParser {
 				String includeFile = parseInclude(line, configFile.getParent());
 				//recurse into include
 				readFile(includeFile, _lines);
+				_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + configFile.getAbsoluteFile().getParent());
 			} else {
 				_lines.add(line);
 				sb.append(line);
@@ -1256,9 +1265,9 @@ public class CASTConfigParser {
 			m_architecture = new ArchitectureConfiguration();
 
 			File configFile = new File(_filename);
-			m_configVars.put("CONFIG_DIR", configFile.getAbsoluteFile().getParent());
+			m_configVars.put(VAR_CONFIG_DIR, configFile.getAbsoluteFile().getParent());
 			expandVars(lines);
-			System.out.println("CONFIG_DIR=" + m_configVars.get("CONFIG_DIR"));
+			System.out.println(VAR_CONFIG_DIR + "=" + m_configVars.get(VAR_CONFIG_DIR));
 
 			processLines(lines);
 			m_extras = parseExtras(lines);

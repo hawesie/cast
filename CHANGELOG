@@ -1,3 +1,9 @@
+2.1.12
+
+2011-27-01  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Marko fixed the bug with python import ordering and added more support for variables in cast files and config.
+
 2.1.11
 
 2010-08-02  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
