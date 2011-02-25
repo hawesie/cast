@@ -335,6 +335,7 @@ public class CASTConfigParser {
 				if (isHeader(line)) {
 					break;
 				} else {
+					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
 					parseArchitectureComponentLine(line, m_architecture);
 				}
 			}
@@ -999,6 +1000,7 @@ public class CASTConfigParser {
 			}
 			else if (isHeader(line)) {
 				headerFound = true;
+				_lines.add(replaceVars(line));
 			}
 			else {
 				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)) {
@@ -1031,7 +1033,7 @@ public class CASTConfigParser {
 
 			String line = (String) _lines.get(i);
 
-			// System.out.println("line: " + line);
+			//System.out.println(String.format("root line %1$03d: %2$s", i, line));
 
 			if (!line.startsWith(COMMENT_CHAR)) {
 
@@ -1093,7 +1095,7 @@ public class CASTConfigParser {
 				if (isHeader(line)) {
 					break;
 				} else {
-					// System.out.println(line);
+					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
 					parseSubarchitectureComponentLine(line, subarch);
 				}
 			}
