@@ -1216,6 +1216,7 @@ public class CASTConfigParser {
 			} else {
 				subarchHost = m_defaultHost;
 			}
+			subarchHost = expandComponentHost(subarchHost);
 
 			return new SubarchitectureConfiguration(subarchName, subarchHost);
 
