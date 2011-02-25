@@ -108,6 +108,15 @@ public class CASTConfigParser {
 
 	public static final String SUBARCH_HEADER = "SUBARCHITECTURE";
 
+	private static String CMD_VARSET = "SETVAR";
+	private static String CMD_VARDEFAULT = "VARDEFAULT";
+
+	// Special variables for host names are stored internally with 'host:' prefix.
+	// They are treated specially in parseSetvarLine and replaceVars.
+	private static String CMD_SETHOST = "HOSTNAME";
+	private static String HOSTVAR_PREFIX = "host:";
+	private static String HOSTVAR_LOCALHOST = HOSTVAR_PREFIX + "localhost";
+
 	public static final String VAR_CURRENT_DIR = "CURRENT_DIR";
 
 	public static final String VAR_CONFIG_DIR = "CONFIG_DIR";
@@ -119,14 +128,7 @@ public class CASTConfigParser {
 
 	private static String m_currentFile;
 
-	private static String CMD_VARSET = "SETVAR";
-	private static String CMD_VARDEFAULT = "VARDEFAULT";
-
-	// Special variables for host names are stored internally with 'host:' prefix.
-	// They are treated specially in parseSetvarLine and replaceVars.
-	private static String CMD_SETHOST = "HOSTNAME";
-	private static String HOSTVAR_PREFIX = "host:";
-	private static String HOSTVAR_LOCALHOST = HOSTVAR_PREFIX + "localhost";
+	public static boolean m_bPrintHostInfo = false;
 
 	//
 	// /**
@@ -827,8 +829,8 @@ public class CASTConfigParser {
 				throw new ArchitectureConfigurationException(
 						"Malformed host line: " + _line);
 			} else {
-				// System.out.println("setting default hostname: " + hostname);
 				m_defaultHost = expandComponentHost(hostname);
+				if (m_bPrintHostInfo) System.out.println("default host: " + m_defaultHost);
 			}
 		} catch (NoSuchElementException e) {
 			throw new ArchitectureConfigurationException(
@@ -903,8 +905,9 @@ public class CASTConfigParser {
 		token = HOSTVAR_PREFIX + token;
 		value = expandComponentHost(value);
 
+		if (m_bPrintHostInfo) System.out.println(token + "=" + value);
+
 		m_configVars.put(token, value);
-		System.out.println(token + "=" + value);
 		return i;
 	}
 
