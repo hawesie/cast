@@ -46,6 +46,8 @@ import cast.core.CASTUtils;
 import cast.core.ControlledRunnable;
 import cast.core.SinglePlaceQueue;
 import cast.core.logging.ComponentLogger;
+import cast.interfaces.WorkingMemoryPrx;
+import cast.interfaces.WorkingMemoryPrxHelper;
 import cast.interfaces._WorkingMemoryReaderComponentOperations;
 
 /**
@@ -146,7 +148,7 @@ public abstract class WorkingMemoryReaderComponent extends
 						// "Missing change object for filtered change: "
 						// + wmc.m_type + " " + wmc.m_operation);
 						// }
-						//                    
+						//
 						// get the object for the change
 
 						m_gdp.m_changeObjects.get(wmc, m_receivers);
@@ -160,35 +162,25 @@ public abstract class WorkingMemoryReaderComponent extends
 									receiver.workingMemoryChanged(wmc);
 									used = true;
 								} catch (CASTException e) {
-									m_logger
-											.error("*********************************************************");
-									m_logger
-											.error("*********************************************************");
-									m_logger
-											.error("Exception thrown by change receiver: "
-													+ e.message);
+									m_logger.error("*********************************************************");
+									m_logger.error("*********************************************************");
+									m_logger.error("Exception thrown by change receiver: "
+											+ e.message);
 									m_logger.error("Change event: "
 											+ CASTUtils.toString(wmc));
 									logException(e);
-									m_logger
-											.error("*********************************************************");
-									m_logger
-											.error("*********************************************************");
+									m_logger.error("*********************************************************");
+									m_logger.error("*********************************************************");
 
 								} catch (Throwable e) {
-									m_logger
-											.error("*********************************************************");
-									m_logger
-											.error("*********************************************************");
-									m_logger
-											.error("Something unexpected thrown by change receiver, exiting");
+									m_logger.error("*********************************************************");
+									m_logger.error("*********************************************************");
+									m_logger.error("Something unexpected thrown by change receiver, exiting");
 									m_logger.error("Change event: "
 											+ CASTUtils.toString(wmc));
 									logException(e);
-									m_logger
-											.error("*********************************************************");
-									m_logger
-											.error("*********************************************************");
+									m_logger.error("*********************************************************");
+									m_logger.error("*********************************************************");
 									System.exit(1);
 								}
 							}
@@ -265,9 +257,8 @@ public abstract class WorkingMemoryReaderComponent extends
 					} catch (SubarchitectureComponentException e) {
 						logException(e);
 					} catch (RuntimeException e) {
-						m_logger
-								.error("Caught RuntimeException and rethrowing: "
-										+ e.getMessage());
+						m_logger.error("Caught RuntimeException and rethrowing: "
+								+ e.getMessage());
 						throw e;
 					}
 
@@ -360,9 +351,8 @@ public abstract class WorkingMemoryReaderComponent extends
 					} catch (SubarchitectureComponentException e) {
 						logException(e);
 					} catch (RuntimeException e) {
-						m_logger
-								.error("Caught RuntimeException and rethrowing: "
-										+ e.getMessage());
+						m_logger.error("Caught RuntimeException and rethrowing: "
+								+ e.getMessage());
 						throw e;
 					}
 
@@ -514,6 +504,12 @@ public abstract class WorkingMemoryReaderComponent extends
 
 	protected boolean m_bReceivingChanges;
 
+	/**
+	 * Determines whether an object read from WM should be copied before being
+	 * returned to caller.
+	 */
+	protected boolean m_makeCopyOnRead;
+
 	private WorkingMemoryChangeFilterMap<WorkingMemoryChangeReceiver> m_changeObjects;
 
 	//
@@ -537,6 +533,11 @@ public abstract class WorkingMemoryReaderComponent extends
 	private ComponentLogger m_loggerForSubscribedChanges;
 
 	/**
+	 * Working memory proxy just for reading. Allows choice of serialisation or not for local connections.
+	 */
+	private WorkingMemoryPrx m_workingMemoryForRead;
+
+	/**
 	 * Construct a new processing component with the given unique ID. Set queue
 	 * behaviour to DISCARD, and xarch change event receiving to false.
 	 * 
@@ -552,6 +553,8 @@ public abstract class WorkingMemoryReaderComponent extends
 
 		m_changeObjects = new WorkingMemoryChangeFilterMap<WorkingMemoryChangeReceiver>();
 		m_receiversToRemove = new Vector<WorkingMemoryChangeReceiver>();
+
+		m_makeCopyOnRead = false;
 	}
 
 	// /**
@@ -711,7 +714,7 @@ public abstract class WorkingMemoryReaderComponent extends
 		assert (_entries != null);
 
 		WorkingMemoryEntrySeqHolder holder = new WorkingMemoryEntrySeqHolder();
-		m_workingMemory.getWorkingMemoryEntries(_type, _subarch, _count,
+		m_workingMemoryForRead.getWorkingMemoryEntries(_type, _subarch, _count,
 				getComponentID(), holder);
 
 		// update newly read things
@@ -911,9 +914,10 @@ public abstract class WorkingMemoryReaderComponent extends
 		assert (_id.length() != 0);
 		assert (_subarch.length() != 0);
 		assert (m_workingMemory != null);
-		WorkingMemoryEntry entry = m_workingMemory.getWorkingMemoryEntry(_id,
-				_subarch, getComponentID());
+		WorkingMemoryEntry entry = m_workingMemoryForRead
+				.getWorkingMemoryEntry(_id, _subarch, getComponentID());
 		assert (entry != null);
+
 		updateVersion(entry.id, entry.version);
 		logGet(_id, _subarch, entry.type, entry.version);
 		return entry;
@@ -1112,9 +1116,9 @@ public abstract class WorkingMemoryReaderComponent extends
 			int _version) {
 
 		if (m_loggerForGets.isTraceEnabled()) {
-			m_loggerForGets.trace(CASTUtils.concatenate("get,", CASTUtils
-					.toString(getCASTTime()), ",", _id, ",", _subarch, ",",
-					_type, ",", _version), getLogAdditions());
+			m_loggerForGets.trace(CASTUtils.concatenate("get,",
+					CASTUtils.toString(getCASTTime()), ",", _id, ",", _subarch,
+					",", _type, ",", _version), getLogAdditions());
 		}
 	}
 
@@ -1124,8 +1128,8 @@ public abstract class WorkingMemoryReaderComponent extends
 	 * @param _wmc
 	 */
 	protected void logChange(WorkingMemoryChange _wmc, ComponentLogger _logger) {
-		_logger.trace(CASTUtils.concatenate("wmc,", CASTUtils
-				.toString(getCASTTime()), ",", _wmc.operation, ",",
+		_logger.trace(CASTUtils.concatenate("wmc,",
+				CASTUtils.toString(getCASTTime()), ",", _wmc.operation, ",",
 				_wmc.address.id, ",", _wmc.address.subarchitecture, ",",
 				_wmc.type), getLogAdditions());
 	}
@@ -1142,7 +1146,7 @@ public abstract class WorkingMemoryReaderComponent extends
 	}
 
 	/**
-	 * Log a change which is  subscribed to to the given logger.
+	 * Log a change which is subscribed to to the given logger.
 	 * 
 	 * @param _wmc
 	 */
@@ -1173,6 +1177,55 @@ public abstract class WorkingMemoryReaderComponent extends
 		// wake threads waiting on changes
 		synchronized (m_wmChangeLock) {
 			m_wmChangeLock.notifyAll();
+		}
+	}
+
+	/**
+	 * Overrides setWorkingMemory to create a local copy of the wm pro
+	 */
+	@Override
+	public void setWorkingMemory(WorkingMemoryPrx _wm, Current __current) {
+		super.setWorkingMemory(_wm, __current);
+
+		// Check whether the WM is language and network local
+		if (m_workingMemory.ice_isCollocationOptimized()) {
+			// if it is, create a new WM proxy that forces serialisation to
+			// ensure a true deep copy is created
+			m_workingMemoryForRead = WorkingMemoryPrxHelper
+					.uncheckedCast(m_workingMemory
+							.ice_collocationOptimized(false));
+		} else {
+			m_workingMemoryForRead = m_workingMemory;
+		}
+	}
+
+	/**
+	 * Sets WM proxy for WM reads back to original state. If the original proxy
+	 * was collocation optimised then reading will now be collocation optimised
+	 * too (and local changes to read objects will be immediately reflected on
+	 * WM).
+	 * 
+	 * @return true if WM reads will now be collocation optimised.
+	 */
+	protected boolean resetReadCollocationOptimisation() {
+		m_workingMemoryForRead = m_workingMemory;
+		return m_workingMemoryForRead.ice_isCollocationOptimized();
+	}
+
+	/**
+	 * Sets WM proxy for WM reads to a un-collocation optimised state.
+	 * Guarantees that local changes to read objects will not appear on WM. This
+	 * is done automatically on start-up, so users do not need to call it.
+	 * 
+	 * @return true if WM reads will now be collocation optimised.
+	 */
+
+	protected void turnOffReadCollocationOptimisation() {
+		// Check whether the WM is language and network local
+		if (m_workingMemoryForRead.ice_isCollocationOptimized()) {
+			m_workingMemoryForRead = WorkingMemoryPrxHelper
+					.uncheckedCast(m_workingMemory
+							.ice_collocationOptimized(false));
 		}
 	}
 
