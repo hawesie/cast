@@ -302,7 +302,7 @@ namespace cast {
 
 
 
-     virtual 
+    virtual 
     void setWorkingMemory(const interfaces::WorkingMemoryPrx & _wm, 
 			  const Ice::Current & _current);
 

@@ -22,8 +22,9 @@ install(TARGETS CASTArchitecture LIBRARY DESTINATION lib/cast ARCHIVE DESTINATIO
 install(FILES ${headers} DESTINATION include/cast/architecture)
 
 add_cast_component_internal(SubarchitectureWorkingMemory SubarchitectureWorkingMemory.cpp SubarchitectureWorkingMemory.hpp)
-install(FILES SubarchitectureWorkingMemory.hpp DESTINATION include/cast/architecture)
 target_link_libraries(SubarchitectureWorkingMemory ${Boost_LIBRARIES})
+install(FILES SubarchitectureWorkingMemory.hpp DESTINATION include/cast/architecture)
+
 
 add_cast_component_internal(AlwaysPositiveTaskManager AlwaysPositiveTaskManager.cpp AlwaysPositiveTaskManager.hpp)
 install(FILES AlwaysPositiveTaskManager.hpp DESTINATION include/cast/architecture)

@@ -629,4 +629,28 @@ namespace cast {
       CAST_TRACE(_logger, o.str() , getLogAdditions());
   }
 
+  
+  void
+  WorkingMemoryReaderComponent::setWorkingMemory(interfaces::WorkingMemoryPrx const &_wm, Ice::Current const &_current) {
+    //do setting for superclass
+    WorkingMemoryWriterComponent::setWorkingMemory(_wm, _current);
+
+    // Check whether the WM is language and network local
+		if (m_workingMemory->ice_isCollocationOptimized()) {
+      m_copyOnRead = true;
+		}    
+  }
+  
+  bool
+  WorkingMemoryReaderComponent::resetReadCollocationOptimisation() {
+    m_copyOnRead = false;
+    return m_workingMemory->ice_isCollocationOptimized();
+  }
+    
+  void 
+  WorkingMemoryReaderComponent::turnOffReadCollocationOptimisation() {
+    m_copyOnRead = true;
+  }
+  
+  
 } //namespace cast
