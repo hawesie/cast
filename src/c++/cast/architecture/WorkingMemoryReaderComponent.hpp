@@ -38,13 +38,13 @@
 
 
 namespace cast {
-
+  
   enum ChangeReceiverPriority {
     HIGH = cdl::RECEIVERPRIORITYHIGH , 
     MEDIUM = cdl::RECEIVERPRIORITYMEDIUM, 
     LOW = cdl::RECEIVERPRIORITYLOW,
   };
-
+  
   
   //fwd declarations
   class WorkingMemoryReaderComponent;
@@ -56,7 +56,7 @@ namespace cast {
    * @author nah
    */
   class WorkingMemoryChangeThread : 
-    public IceUtil::Thread {
+  public IceUtil::Thread {
     
   public:
     
@@ -72,7 +72,7 @@ namespace cast {
     virtual 
     void 
     run();
-
+    
     
     
     /**
@@ -80,7 +80,7 @@ namespace cast {
      * longer be queued.
      */
     void stop();
-
+    
     /**
      * Add a list of working memory change structs to the queue qaiting
      * to be passed into the WorkingMemoryReaderComponent. The change
@@ -91,21 +91,21 @@ namespace cast {
      * WorkingMemoryChange structs.
      */
     void queueChange(const cdl::WorkingMemoryChange & _change);
-
-
+    
+    
     /**
      * Makes the choice to use event objects or method calls.
      */
     bool forwardToSubclass(std::list<cdl::WorkingMemoryChange> & _wmcl);
-
+    
   public:
-
+    
     /**
      * Destructor. Hidden to prevent the thread being destroyed.
      */
     virtual ~WorkingMemoryChangeThread();
-
-
+    
+    
     /**
      * Wait for the WorkingMemoryReaderComponent's semaphore to be free,
      * then call the workingMemoryChanged method from that object. New
@@ -113,7 +113,7 @@ namespace cast {
      * are queue. This locks the semaphore whilst writing.
      */
     void runQueue();
-
+    
     /**
      * Wait for the WorkingMemoryReaderComponent's semaphore to be free,
      * then call the workingMemoryChanged method from that object. New
@@ -121,32 +121,32 @@ namespace cast {
      * are discarded.  This locks the semaphore whilst writing.
      */
     void runDiscard();
-
-
+    
+    
   private:
-
+    
     /**
      * Goes through m_receiversToRemove in the component and removes
      * as required.
      */
     inline void removeChangeFilters() const;
-
+    
     /**
      * The list of change structs ready to be written to the component.
      */
     std::list<cdl::WorkingMemoryChange>  m_changeList;
-  
+    
     ///Controls access to m_changeList
     IceUtil::Mutex m_queueAccess;
     ///Whether the thread should do anthing
     bool m_bRun;
-
+    
     ///The component that this object writes change events into.
     WorkingMemoryReaderComponent * m_pWMRP;
-
-
+    
+    
     IceUtil::Monitor<IceUtil::Mutex> m_changeMonitor;
-
+    
     //temp used for comparisons
     cdl::WorkingMemoryChangeFilter m_tmpFilter;
     
@@ -155,9 +155,9 @@ namespace cast {
     
   };
   
-
-
-
+  
+  
+  
   /**
    * Defines a class of component that can read from a working memory. This
    * component is based largely on receiving change events that inform the
@@ -169,12 +169,12 @@ namespace cast {
    * @author nah
    */
   class WorkingMemoryReaderComponent :
-    public WorkingMemoryWriterComponent,
-    virtual public interfaces::WorkingMemoryReaderComponent
+  public WorkingMemoryWriterComponent,
+  virtual public interfaces::WorkingMemoryReaderComponent
   {
     
   private:
-
+    
     //temp vector to store receivers scheduled for removal
     std::vector<const WorkingMemoryChangeReceiver *> m_receiversToRemove;
     
@@ -186,26 +186,26 @@ namespace cast {
      * events from other subarchitectures.
      */
     bool m_receiveXarchChangeNotifications;
-
+    
     /**
      * Does the removing work
      */
     void removeChangeFilterHelper(const WorkingMemoryChangeReceiver * _receiver);
-
+    
     /**
      * The thread that is used to forward change events to the derived
      * class.
      */
     IceUtil::Handle<WorkingMemoryChangeThread> m_pWMChangeThread;    
     IceUtil::ThreadControl m_pWMChangeThreadControl;
-
-
+    
+    
     /**
      * Used to determine whether change events are queued or discarded.
      * Default is to discard them.
      */
     cdl::WorkingMemoryChangeQueueBehaviour m_queueBehaviour;
-
+    
     /**
      * The set of filters that are applied to determine whether to
      * forward change events to the derived class or not.
@@ -213,10 +213,15 @@ namespace cast {
     boost::shared_ptr< WorkingMemoryChangeFilterMap<WorkingMemoryChangeReceiver *> > m_pChangeObjects;    
     
     IceUtil::Monitor<IceUtil::Mutex> m_wmcMonitor;
-
+    
     ComponentLoggerPtr m_loggerForGets;
     ComponentLoggerPtr m_loggerForUnsubscribedChanges;
     ComponentLoggerPtr m_loggerForSubscribedChanges;
+    
+    /**
+     * Determines whether the object read from WM should be copied before return.
+     */
+    bool m_copyOnRead;
     
     /**
      * Log the get to the logger defined to received gets. The logger must be
@@ -229,10 +234,10 @@ namespace cast {
      */
     virtual 
     void logGet(const std::string & _id, 
-		const std::string & _subarch, 
-		const std::string & _type,
-		const int & _version);
-
+                const std::string & _subarch, 
+                const std::string & _type,
+                const int & _version);
+    
     virtual 
     void logUnsubscribedChange(const cdl::WorkingMemoryChange& _wmc);
     
@@ -240,40 +245,64 @@ namespace cast {
     void logSubscribedChange(const cdl::WorkingMemoryChange& _wmc);
     
   protected:
-
+    
     virtual 
     void logChange(const cdl::WorkingMemoryChange& _wmc, ComponentLoggerPtr _logger);
-
+    
+    
+    virtual
+    void setWorkingMemory(interfaces::WorkingMemoryPrx const &_wm, Ice::Current const &_current);
+    
+    
+    /**
+     * Sets WM proxy for WM reads back to original state. If the original proxy
+     * was collocation optimised then reading will now be collocation optimised
+     * too (and local changes to read objects will be immediately reflected on
+     * WM).
+     * 
+     * @return true if WM reads will now be collocation optimised.
+     */
+    bool resetReadCollocationOptimisation();
+    
+    /**
+     * Sets WM proxy for WM reads to a un-collocation optimised state.
+     * Guarantees that local changes to read objects will not appear on WM. This
+     * is done automatically on start-up, so users do not need to call it.
+     * 
+     * @return true if WM reads will now be collocation optimised.
+     */
+    void turnOffReadCollocationOptimisation();
+    
   public:
-
+    
     /**
      * Constructor.
      *
      * @param _id The unique identifier of this component.
      */
     WorkingMemoryReaderComponent();  
-
+    
     /**
      * Destructor.
      */
     virtual ~WorkingMemoryReaderComponent();
-
-
+    
+    
     /**
      * Start this component running. This overridden method also starts
      * the encapsulated thread that forwards change information.
      * 
      */
     virtual void startInternal();
-
+    
     virtual void stopInternal();
-
+    
     ///Friend declaration for change thread.
     friend class WorkingMemoryChangeThread;
-
-
+    
+    
   public:
-
+    
     /**
      * Removes the given change filter from the set of filters
      * receiving change events. To ensure thread safety the removal
@@ -283,26 +312,26 @@ namespace cast {
      *
      */
     void removeChangeFilter(const WorkingMemoryChangeReceiver * _receiver, 
-			    const cdl::ReceiverDeleteCondition & _condition = cdl::DONOTDELETERECEIVER);
- 
+                            const cdl::ReceiverDeleteCondition & _condition = cdl::DONOTDELETERECEIVER);
+    
     /**
      * Set filters to receive no changes at all.
      */
     virtual 
     void receiveNoChanges();
-
+    
     /**
      * Set filters to receive changes using filters.
      */
     virtual void receiveChanges();
-  
-
+    
+    
     /**
      * Determine whether this component should receive change events
      * from other subarchitectures.
      */
     bool isReceivingXarchChangeNotifications();
-
+    
     /**
      * Determine whether this component should receive change events
      * from other subarchitectures.
@@ -311,17 +340,17 @@ namespace cast {
      *            new value.
      */
     void setReceiveXarchChangeNotifications(bool _receiveXarchChangeNotifications);
-  
+    
     int getFilterCount() const {
       if(m_pChangeObjects) {
-	return m_pChangeObjects->size();
+        return m_pChangeObjects->size();
       }
       else {
-	return 0;
+        return 0;
       }
     }
-
-
+    
+    
     /**
      * Get the entry from working memory with the given id. Returned
      * in stored format. Use getWorkingMemoryEntry<T> to get it in
@@ -335,10 +364,10 @@ namespace cast {
     virtual
     cdl::WorkingMemoryEntryPtr
     getBaseMemoryEntry(const std::string & _id) 
-      throw (DoesNotExistOnWMException) {
+    throw (DoesNotExistOnWMException) {
       return getBaseMemoryEntry(_id, getSubarchitectureID());
     }
-
+    
     /**
      * Get the entry from working memory with the given id. Returned
      * in stored format. Use getWorkingMemoryEntry<T> to get it in
@@ -352,10 +381,10 @@ namespace cast {
     virtual
     cdl::WorkingMemoryEntryPtr
     getBaseMemoryEntry(const cdl::WorkingMemoryAddress & _wma) 
-      throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
+    throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
       return getBaseMemoryEntry(_wma.id, _wma.subarchitecture);
     }
-
+    
     /**
      * Get the entry from working memory with the given id. Returned
      * in stored format. Use getWorkingMemoryEntry<T> to get it in
@@ -369,68 +398,74 @@ namespace cast {
     virtual
     cdl::WorkingMemoryEntryPtr
     getBaseMemoryEntry(const std::string & _id, 
-		       const std::string & _subarch) 
-      throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
+                       const std::string & _subarch) 
+    throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
       assert(!_id.empty());
       assert(m_workingMemory);
       cdl::WorkingMemoryEntryPtr entry(m_workingMemory->getWorkingMemoryEntry(_id, _subarch, getComponentID()));
+      
+      //if copy required on read
+      if(m_copyOnRead) {
+        entry = new cdl::WorkingMemoryEntry(entry->id,entry->type,entry->version, entry->entry->ice_clone());
+      }
+      
       updateVersion(entry->id, entry->version);
       logGet(_id, _subarch, entry->type, entry->version);
       return entry;
     }
-
-
+    
+    
     template <class T>
     IceInternal::Handle<T>
     getMemoryEntry(const std::string & _id) 
-      throw (DoesNotExistOnWMException) {
+    throw (DoesNotExistOnWMException) {
       return getMemoryEntry<T>(_id,getSubarchitectureID());
     }
-
-
+    
+    
     template <class T>
     IceInternal::Handle<T>
     getMemoryEntry(const cdl::WorkingMemoryAddress & _wma) 
-      throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
+    throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
       return getMemoryEntry<T>(_wma.id, _wma.subarchitecture);
     }
-
-
+    
+    
     template <class T>
     IceInternal::Handle<T>
     getMemoryEntry(const std::string & _id, 
-		   const std::string & _subarch) 
-      throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
+                   const std::string & _subarch) 
+    throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
       return IceInternal::Handle<T>::dynamicCast(getBaseMemoryEntry(_id,_subarch)->entry);
     }
-
-
+    
+    
     template <class T>
     CASTData<T>
     getMemoryEntryWithData(const std::string & _id) 
-      throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
+    throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
       return getMemoryEntryWithData<T>(_id,getSubarchitectureID());
     }
-
+    
     
     template <class T>
     CASTData<T>
     getMemoryEntryWithData(const cdl::WorkingMemoryAddress & _wma) 
-      throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
+    throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
       return getMemoryEntryWithData<T>(_wma.id, _wma.subarchitecture);
     }
     
     template <class T>
     CASTData<T>
     getMemoryEntryWithData(const std::string & _id,
-			   const std::string & _subarch) 
-      throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
+                           const std::string & _subarch) 
+    throw (DoesNotExistOnWMException, UnknownSubarchitectureException) {
       return CASTData<T>(getBaseMemoryEntry(_id,_subarch));
     }
-
-
-
-
+    
+    
+    
+    
     /**
      * Get the entry from working memory with the given
      * id. DEPRECATED: use getMemory* equivalent. Boost dependencies
@@ -444,7 +479,7 @@ namespace cast {
     template <class T>
     boost::shared_ptr< CASTData<T> > 
     getWorkingMemoryEntry(const std::string & _id)  __attribute__ ((deprecated));
-
+    
     /**
      * Get the entry from working memory with the given
      * id. DEPRECATED: use getMemory* equivalent. Boost dependencies
@@ -458,8 +493,8 @@ namespace cast {
     template <class T>
     boost::shared_ptr< CASTData<T> > 
     getWorkingMemoryEntry(const cdl::WorkingMemoryAddress & _wma)  __attribute__ ((deprecated));
-
-
+    
+    
     /**
      * Get the entry from working memory in a particular subarchitecture
      * with the given id.
@@ -475,114 +510,124 @@ namespace cast {
     template <class T>
     boost::shared_ptr< CASTData<T> > 
     getWorkingMemoryEntry(const std::string & _id, const std::string & _subarch)  __attribute__ ((deprecated));
-
-
+    
+    
     
     template <class T>
     void
     getBaseMemoryEntries(cdl::WorkingMemoryEntrySeq & _entries,
-			 const unsigned int _count = 0) {
+                         const unsigned int _count = 0) {
       getBaseMemoryEntries<T>(_entries,getSubarchitectureID(), _count);
     }
-
+    
     template <class T>
     void
     getBaseMemoryEntries(cdl::WorkingMemoryEntrySeq & _entries,
-			 const std::string & _subarch,
-			 const unsigned int _count = 0) 
-      throw(UnknownSubarchitectureException) {
+                         const std::string & _subarch,
+                         const unsigned int _count = 0) 
+    throw(UnknownSubarchitectureException) {
       assert(!_subarch.empty());//subarch must not be empty
       const std::string & type(typeName<T>());
       
       m_workingMemory->getWorkingMemoryEntries(type,_subarch,_count,getComponentID(), _entries);
-
+      
+      //TODO merge next two loops (oh, and test this)
+      
+      //if copy required on read
+      if(m_copyOnRead) {
+        for (int i = 0; i < _entries.size(); ++i) {
+          _entries[i] = new cdl::WorkingMemoryEntry(_entries[i]->id,_entries[i]->type,_entries[i]->version, _entries[i]->entry->ice_clone());
+        }        
+      }
+      
       for(cdl::WorkingMemoryEntrySeq::const_iterator i = _entries.begin();
-	  i < _entries.end(); ++i) {
-	updateVersion((*i)->id, (*i)->version);
-	logGet((*i)->id, _subarch, (*i)->type, (*i)->version);
+          i < _entries.end(); ++i) {
+                
+        updateVersion((*i)->id, (*i)->version);
+        logGet((*i)->id, _subarch, (*i)->type, (*i)->version);
       }      
     }
-
+    
     template <class T>
     void
     getMemoryEntries(std::vector< IceInternal::Handle<T> > & _entries,
-		     const unsigned int _count = 0) {
+                     const unsigned int _count = 0) {
       getMemoryEntries<T>(_entries,getSubarchitectureID(), _count);
     }
-
+    
     template <class T>
     void
     getMemoryEntries(std::vector< IceInternal::Handle<T> > & _entries,
-		     const std::string & _subarch,
-		     const unsigned int _count = 0) 
-      throw (UnknownSubarchitectureException) {
+                     const std::string & _subarch,
+                     const unsigned int _count = 0) 
+    throw (UnknownSubarchitectureException) {
       assert(!_subarch.empty());//subarch must not be empty
-
+      
       //get base entries
       cdl::WorkingMemoryEntrySeq entries;
       getBaseMemoryEntries<T>(entries,_subarch,_count);
-
+      
       //add cast result to other vector
       for(cdl::WorkingMemoryEntrySeq::const_iterator i = entries.begin();
-	  i < entries.end(); ++i) {
-	_entries.push_back(IceInternal::Handle<T>::dynamicCast((*i)->entry));
+          i < entries.end(); ++i) {
+        _entries.push_back(IceInternal::Handle<T>::dynamicCast((*i)->entry));
       }      
     }
-
+    
     template <class T>
     void
     getMemoryEntriesWithData(std::vector< CASTData<T> > & _entries,
-			     const unsigned int _count = 0) {
+                             const unsigned int _count = 0) {
       getMemoryEntriesWithData<T>(_entries,getSubarchitectureID(), _count);
     }
-
+    
     template <class T>
     void
     getMemoryEntriesWithData(std::vector< CASTData<T> > & _entries,
-			     const std::string & _subarch,
-			     const unsigned int _count = 0) 
-      throw (UnknownSubarchitectureException) {
+                             const std::string & _subarch,
+                             const unsigned int _count = 0) 
+    throw (UnknownSubarchitectureException) {
       assert(!_subarch.empty());//subarch must not be empty
-
+      
       //get base entries
       cdl::WorkingMemoryEntrySeq entries;
       getBaseMemoryEntries<T>(entries,_subarch,_count);
-
+      
       //add cast result to other vector
       for(cdl::WorkingMemoryEntrySeq::const_iterator i = entries.begin();
-	  i < entries.end(); ++i) {
-	_entries.push_back(CASTData<T>(*i));
+          i < entries.end(); ++i) {
+        _entries.push_back(CASTData<T>(*i));
       }      
     }
-
-
+    
+    
     //     virtual 
     //     void
     //     runComponent() {
     //       using namespace cdl;
     //       using namespace std;
     //       using namespace boost;
-
+    
     //       WorkingMemoryEntryPtr wme(getBaseMemoryEntry("asd"));
     //       TestStructStringPtr tss(getMemoryEntry<TestStructString>("asd"));
     //       CASTData<TestStructString> ctd(getMemoryEntryWithData<TestStructString>("asd"));
     //       boost::shared_ptr<const CASTData<TestStructString> > shrd(getWorkingMemoryEntry<TestStructString>("asd"));
-
+    
     //       WorkingMemoryEntrySeq entries;
     //       getBaseMemoryEntries<TestStructString>(entries);
     //       vector<TestStructStringPtr> entries2;
     //       getMemoryEntries(entries2);
-
+    
     //       vector< CASTData<TestStructString> > entries3;
     //       getMemoryEntriesWithData(entries3);
-
+    
     //       vector< shared_ptr<const CASTData<TestStructString> > > entries4;
     //       getWorkingMemoryEntries(entries4);
-
-    //     }
-
     
-
+    //     }
+    
+    
+    
     /**
      * Retrieve the working memory entries matching the given type from
      * the local subarchitecture working memory.
@@ -596,7 +641,7 @@ namespace cast {
      */
     template <class T>
     void  getWorkingMemoryEntries(std::vector < boost::shared_ptr< CASTData<T> > > & _results)   __attribute__ ((deprecated));
-
+    
     /**
      * Retrieve the working memory entries matching the given type from
      * the local subarchitecture working memory.
@@ -610,8 +655,8 @@ namespace cast {
      */
     template <class T>
     void  getWorkingMemoryEntries(const int & _count,
-				  std::vector < boost::shared_ptr< CASTData<T> > > & _results)  __attribute__ ((deprecated));
-
+                                  std::vector < boost::shared_ptr< CASTData<T> > > & _results)  __attribute__ ((deprecated));
+    
     /**
      * Retrieve the working memory entries matching the given type from
      * the specified subarchitecture working memory.
@@ -628,9 +673,9 @@ namespace cast {
      */
     template <class T>
     void  getWorkingMemoryEntries(const std::string & _subarch,				  
-				  const int & _count,
-				  std::vector < boost::shared_ptr< CASTData<T> > > & _results)  __attribute__ ((deprecated));
-
+                                  const int & _count,
+                                  std::vector < boost::shared_ptr< CASTData<T> > > & _results)  __attribute__ ((deprecated));
+    
     /**
      * Add a new filter object to receive the change events.  See
      * ChangeFilterFactory for functions for creating filters.
@@ -640,22 +685,22 @@ namespace cast {
      *            The receiver object
      */
     void addChangeFilter(const cdl::WorkingMemoryChangeFilter & _filter,  
-			 WorkingMemoryChangeReceiver * _pReceiver,
-			 const int & _priority = ChangeReceiverPriority(MEDIUM));
-
-
+                         WorkingMemoryChangeReceiver * _pReceiver,
+                         const int & _priority = ChangeReceiverPriority(MEDIUM));
+    
+    
     void receiveChangeEvent(const cdl::WorkingMemoryChange& wmc, 
-			    const Ice::Current & _ctx);
-
+                            const Ice::Current & _ctx);
+    
     /**
      * This method sleeps until workingMemoryChanged has returned after
      * writing at least one change event. 
      *
      */
     void waitForChanges();
-  
+    
   };
-
+  
 } //namespace cast
 
 
@@ -676,7 +721,7 @@ cast::WorkingMemoryReaderComponent::getWorkingMemoryEntry(const cdl::WorkingMemo
 template <class T>
 boost::shared_ptr< cast::CASTData<T> > 
 cast::WorkingMemoryReaderComponent::getWorkingMemoryEntry(const std::string & _id,
-							  const std::string & _subarch)  {  
+                                                          const std::string & _subarch)  {  
   return boost::shared_ptr<cast::CASTData<T> >(new cast::CASTData<T>(getBaseMemoryEntry(_id, _subarch)));
 }
 
@@ -690,7 +735,7 @@ cast::WorkingMemoryReaderComponent::getWorkingMemoryEntries(std::vector < boost:
 template <class T>
 void
 cast::WorkingMemoryReaderComponent::getWorkingMemoryEntries(const int & _count,
-							    std::vector < boost::shared_ptr< CASTData<T> > > & _results) {
+                                                            std::vector < boost::shared_ptr< CASTData<T> > > & _results) {
   return getWorkingMemoryEntries<T>(m_subarchitectureID,_count,_results);
 }
 
@@ -699,11 +744,11 @@ cast::WorkingMemoryReaderComponent::getWorkingMemoryEntries(const int & _count,
 template <class T>
 void  
 cast::WorkingMemoryReaderComponent::getWorkingMemoryEntries(const std::string & _subarch,				  
-							    const int & _count,
-							    std::vector < boost::shared_ptr< CASTData<T> > > & _results) {
+                                                            const int & _count,
+                                                            std::vector < boost::shared_ptr< CASTData<T> > > & _results) {
   
   assert(!_subarch.empty());//subarch must not be empty
-
+  
   //get base entries
   cdl::WorkingMemoryEntrySeq entries;
   getBaseMemoryEntries<T>(entries,_subarch,_count);
@@ -713,7 +758,7 @@ cast::WorkingMemoryReaderComponent::getWorkingMemoryEntries(const std::string & 
       i < entries.end(); ++i) {
     _results.push_back(boost::shared_ptr<CASTData<T> >(new CASTData<T>(*i)));
   }      
-
+  
   
 }
 

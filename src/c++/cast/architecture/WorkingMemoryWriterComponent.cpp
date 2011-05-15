@@ -188,5 +188,29 @@ namespace cast {
     logDelete(_id, _subarch);
   }
 
+  
+  void
+  WorkingMemoryWriterComponent::setWorkingMemory(interfaces::WorkingMemoryPrx const &_wm, Ice::Current const &_current) {
+
+    //do setting for superclass
+    WorkingMemoryAttachedComponent::setWorkingMemory(_wm, _current);
+    
+    // Check whether the WM is language and network local
+		if (m_workingMemory->ice_isCollocationOptimized()) {
+      m_copyOnWrite = true;
+		}    
+  }
+  
+  bool
+  WorkingMemoryWriterComponent::resetWriteCollocationOptimisation() {
+    m_copyOnWrite = false;
+    return m_workingMemory->ice_isCollocationOptimized();
+  }
+  
+  void 
+  WorkingMemoryWriterComponent::turnOffWriteCollocationOptimisation() {
+    m_copyOnWrite = true;
+  }
+  
 
 } //namespace cast

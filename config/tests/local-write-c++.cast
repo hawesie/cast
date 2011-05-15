@@ -1,0 +1,5 @@
+SUBARCHITECTURE test localhost
+CPP WM SubarchitectureWorkingMemory
+CPP TM AlwaysPositiveTaskManager 
+CPP MG writer DirectAccessWriter
+CPP MG reader DirectAccessReader

@@ -38,6 +38,9 @@ TARGET_LINK_LIBRARIES(BasicTester CASTTesting)
 add_cast_component_internal(LockTester LockTester.cpp LockTester.hpp)
 TARGET_LINK_LIBRARIES(LockTester CASTTesting)
 
+add_cast_component_internal(DirectAccessWriter DirectAccessWriter.cpp DirectAccessWriter.hpp)
+add_cast_component_internal(DirectAccessReader DirectAccessReader.cpp DirectAccessReader.hpp)
+
 
 # PROJECT(Proposer)
 # SET(SOURCES Proposer.cpp)

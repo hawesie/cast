@@ -1,3 +1,9 @@
+2.1.13
+
+2012-15-05  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Changed default behaviour to ensure that all data written to, and read from, WM is deep copied, even when components are in the same language and on the same machine. The previous behaviour, although fast, was causing a few bugs in end user code. The optimisations can be turned back on per component by looking at WorkingMemoryReaderComponent::resetReadCollocationOpimisation and WorkingMemoryWriterComponentWorkingMemoryReaderComponent::resetWriteCollocationOpimisation.
+
 2.1.12
 
 2011-27-01  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>

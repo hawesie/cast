@@ -6,6 +6,8 @@ package cast.architecture;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import Ice.Current;
 import cast.ConsistencyException;
 import cast.DoesNotExistOnWMException;
@@ -17,6 +19,7 @@ import cast.core.CASTComponentPermissionsMap;
 import cast.core.CASTUtils;
 import cast.core.SubarchitectureComponent;
 import cast.interfaces.WorkingMemoryPrx;
+import cast.interfaces.WorkingMemoryPrxHelper;
 import cast.interfaces._WorkingMemoryAttachedComponentOperations;
 
 /**
@@ -34,6 +37,7 @@ public abstract class WorkingMemoryAttachedComponent extends
 	protected WorkingMemoryPrx m_workingMemory;
 
 	public void setWorkingMemory(WorkingMemoryPrx _wm, Current __current) {
+		assert (_wm != null);
 		m_workingMemory = _wm;
 	}
 
@@ -314,8 +318,8 @@ public abstract class WorkingMemoryAttachedComponent extends
 	 * @throws DoesNotExistOnWMException
 	 *             if the _id does not exist on wm
 	 */
-	public final void checkConsistency(String _id)
-			throws ConsistencyException, DoesNotExistOnWMException {
+	public final void checkConsistency(String _id) throws ConsistencyException,
+			DoesNotExistOnWMException {
 		try {
 			checkConsistency(_id, getSubarchitectureID());
 		} catch (UnknownSubarchitectureException e) {
@@ -548,9 +552,8 @@ public abstract class WorkingMemoryAttachedComponent extends
 	 * @throws DoesNotExistOnWMException
 	 * @throws UnknownSubarchitectureException
 	 */
-	public WorkingMemoryPermissions getPermissions(String _id,
-			String _subarch) throws DoesNotExistOnWMException,
-			UnknownSubarchitectureException {
+	public WorkingMemoryPermissions getPermissions(String _id, String _subarch)
+			throws DoesNotExistOnWMException, UnknownSubarchitectureException {
 		assert _id.length() != 0 : "_id must not be empty";
 		assert _subarch.length() != 0 : "_subarch must not be empty";
 		return m_workingMemory.getPermissions(_id, _subarch);
@@ -685,8 +688,7 @@ public abstract class WorkingMemoryAttachedComponent extends
 	 * @throws DoesNotExistOnWMException
 	 *             If the item does not exist on wm.
 	 */
-	public void tryLockEntry(String _id,
-			WorkingMemoryPermissions _permissions)
+	public void tryLockEntry(String _id, WorkingMemoryPermissions _permissions)
 			throws DoesNotExistOnWMException {
 		try {
 			lockEntry(_id, getSubarchitectureID(), _permissions);

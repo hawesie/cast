@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.log4j.Level;
 
+import Ice.Current;
 import Ice.Object;
 import Ice.ObjectImpl;
 import cast.AlreadyExistsOnWMException;
@@ -33,6 +34,8 @@ import cast.cdl.COMPONENTNUMBERKEY;
 import cast.cdl.WorkingMemoryAddress;
 import cast.core.CASTUtils;
 import cast.core.logging.ComponentLogger;
+import cast.interfaces.WorkingMemoryPrx;
+import cast.interfaces.WorkingMemoryPrxHelper;
 
 /**
  * Defines a class of process that can both read from and write to a working
@@ -52,6 +55,12 @@ public abstract class WorkingMemoryWriterComponent extends
 	private ComponentLogger m_loggerForAdditions;
 	private ComponentLogger m_loggerForOverwrites;
 	private ComponentLogger m_loggerForDeletes;
+
+	/**
+	 * Working memory proxy just for writing. Allows choice of serialisation or
+	 * not for local connections.
+	 */
+	private WorkingMemoryPrx m_workingMemoryForWrite;
 
 	/**
 	 * @param _id
@@ -177,7 +186,7 @@ public abstract class WorkingMemoryWriterComponent extends
 						e);
 			}
 		}
-		m_workingMemory.addToWorkingMemory(_id, _subarch, type,
+		m_workingMemoryForWrite.addToWorkingMemory(_id, _subarch, type,
 				getComponentID(), _data);
 
 		logAdd(_id, _subarch, type, versionWhichWillEndUpOnWM);
@@ -196,9 +205,9 @@ public abstract class WorkingMemoryWriterComponent extends
 			int _version) {
 
 		if (m_loggerForAdditions.isTraceEnabled()) {
-			m_loggerForAdditions.trace(CASTUtils.concatenate("add,", CASTUtils
-					.toString(getCASTTime()), ",", _id, ",", _subarch, ",",
-					_type, ",", _version), getLogAdditions());
+			m_loggerForAdditions.trace(CASTUtils.concatenate("add,",
+					CASTUtils.toString(getCASTTime()), ",", _id, ",", _subarch,
+					",", _type, ",", _version), getLogAdditions());
 		}
 	}
 
@@ -214,9 +223,9 @@ public abstract class WorkingMemoryWriterComponent extends
 			int _version) {
 
 		if (m_loggerForOverwrites.isTraceEnabled()) {
-			m_loggerForOverwrites.trace(CASTUtils.concatenate("ovr,", CASTUtils
-					.toString(getCASTTime()), ",", _id, ",", _subarch, ",",
-					_type, ",", _version), getLogAdditions());
+			m_loggerForOverwrites.trace(CASTUtils.concatenate("ovr,",
+					CASTUtils.toString(getCASTTime()), ",", _id, ",", _subarch,
+					",", _type, ",", _version), getLogAdditions());
 		}
 	}
 
@@ -231,9 +240,10 @@ public abstract class WorkingMemoryWriterComponent extends
 	private final void logDelete(String _id, String _subarch) {
 
 		if (m_loggerForDeletes.isTraceEnabled()) {
-			m_loggerForDeletes.trace(CASTUtils.concatenate("del,", CASTUtils
-					.toString(getCASTTime()), ",", _id, ",", _subarch),
-					getLogAdditions());
+			m_loggerForDeletes.trace(
+					CASTUtils.concatenate("del,",
+							CASTUtils.toString(getCASTTime()), ",", _id, ",",
+							_subarch), getLogAdditions());
 		}
 	}
 
@@ -487,7 +497,7 @@ public abstract class WorkingMemoryWriterComponent extends
 
 		// logMemoryOverwrite(_id,_subarch,type);
 
-		m_workingMemory.overwriteWorkingMemory(_id, _subarch, type,
+		m_workingMemoryForWrite.overwriteWorkingMemory(_id, _subarch, type,
 				getComponentID(), _data);
 
 		// if we got this far, then we're allowed to update our local
@@ -495,6 +505,53 @@ public abstract class WorkingMemoryWriterComponent extends
 		increaseStoredVersion(_id);
 
 		logOverwrite(_id, _subarch, type, getStoredVersionNumber(_id));
+	}
+
+	/**
+	 * Overrides setWorkingMemory to create a local copy of the wm pro
+	 */
+	@Override
+	public void setWorkingMemory(WorkingMemoryPrx _wm, Current __current) {
+		super.setWorkingMemory(_wm, __current);
+
+		// Check whether the WM is language and network local
+		if (m_workingMemory.ice_isCollocationOptimized()) {
+			// if it is, create a new WM proxy that forces serialisation to
+			// ensure a true deep copy is created
+			m_workingMemoryForWrite = WorkingMemoryPrxHelper
+					.uncheckedCast(m_workingMemory
+							.ice_collocationOptimized(false));
+		} else {
+			m_workingMemoryForWrite = m_workingMemory;
+		}
+	}
+
+	/**
+	 * Sets WM proxy for WM writes back to original state. If the original proxy
+	 * was collocation optimised then writing will now be collocation optimised
+	 * too (and local changes to written objects will be immediately reflected
+	 * on WM).
+	 * 
+	 * @return true if WM writes will now be collocation optimised.
+	 */
+	protected boolean resetWriteCollocationOptimisation() {
+		m_workingMemoryForWrite = m_workingMemory;
+		return m_workingMemoryForWrite.ice_isCollocationOptimized();
+	}
+
+	/**
+	 * Sets WM proxy for WM writes to a un-collocation optimised state.
+	 * Guarantees that local changes to written objects will not appear on WM.
+	 * This is done automatically on start-up, so users do not need to call it.
+	 * 
+	 */
+	protected void turnOffWriteCollocationOptimisation() {
+		// Check whether the WM is language and network local
+		if (m_workingMemoryForWrite.ice_isCollocationOptimized()) {
+			m_workingMemoryForWrite = WorkingMemoryPrxHelper
+					.uncheckedCast(m_workingMemory
+							.ice_collocationOptimized(false));
+		}
 	}
 
 }

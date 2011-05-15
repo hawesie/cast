@@ -108,13 +108,27 @@ public class CASTConfigParser {
 
 	public static final String SUBARCH_HEADER = "SUBARCHITECTURE";
 
+	private static String CMD_VARSET = "SETVAR";
+	private static String CMD_VARDEFAULT = "VARDEFAULT";
+
+	// Special variables for host names are stored internally with 'host:' prefix.
+	// They are treated specially in parseSetvarLine and replaceVars.
+	private static String CMD_SETHOST = "HOSTNAME";
+	private static String HOSTVAR_PREFIX = "host:";
+	private static String HOSTVAR_LOCALHOST = HOSTVAR_PREFIX + "localhost";
+
 	public static final String VAR_CURRENT_DIR = "CURRENT_DIR";
 
 	public static final String VAR_CONFIG_DIR = "CONFIG_DIR";
 
+	public static final String ERROR_LABEL = "Parser ERROR: ";
+	public static final String WARNING_LABEL = "Parser WARNING: ";
+
 	private static String m_lastParse = "";
 
 	private static String m_currentFile;
+
+	public static boolean m_bPrintHostInfo = false;
 
 	//
 	// /**
@@ -291,7 +305,7 @@ public class CASTConfigParser {
 	 */
 	private static boolean isHeader(String line) {
 		return line.startsWith(SUBARCH_HEADER) || line.startsWith(ARCH_HEADER)
-				|| line.startsWith(HOST_HEADER)
+				|| (line.startsWith(HOST_HEADER) && !line.startsWith(CMD_SETHOST))
 				|| line.startsWith(EXTRA_CONNECTION_HEADER)
 				|| line.startsWith(EXTRA_COMPONENT_HEADER);
 	}
@@ -323,6 +337,7 @@ public class CASTConfigParser {
 				if (isHeader(line)) {
 					break;
 				} else {
+					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
 					parseArchitectureComponentLine(line, m_architecture);
 				}
 			}
@@ -362,6 +377,7 @@ public class CASTConfigParser {
 				}
 				componentHost = m_defaultHost;
 			}
+			componentHost = expandComponentHost(componentHost);
 
 			ComponentLanguage procLang;
 			if (lang.equals(CPP_FLAG)) {
@@ -608,6 +624,7 @@ public class CASTConfigParser {
 				}
 				componentHost = m_defaultHost;
 			}
+			componentHost = expandComponentHost(componentHost);
 
 			// System.err.println("componentHost: " + componentHost);
 
@@ -812,21 +829,20 @@ public class CASTConfigParser {
 				throw new ArchitectureConfigurationException(
 						"Malformed host line: " + _line);
 			} else {
-				// System.out.println("setting default hostname: " + hostname);
-				m_defaultHost = hostname;
+				m_defaultHost = expandComponentHost(hostname);
+				if (m_bPrintHostInfo) System.out.println("default host: " + m_defaultHost);
 			}
 		} catch (NoSuchElementException e) {
 			throw new ArchitectureConfigurationException(
 					"Malformed host line: " + _line, e);
 		}
-
 	}
 
-	private static String CMD_VARSET = "SETVAR";
-	private static String CMD_VARDEFAULT = "VARDEFAULT";
 	private static HashMap<String, String> m_configVars = new HashMap<String, String>();
 	private static Pattern m_regexConfigVar =
 	 	Pattern.compile("^\\s*([A-Z]+)\\s+([a-zA-Z][a-zA-Z0-9_]*)\\s*=\\s*(.*)\\s*$");
+	private static Pattern m_regexSethost =
+	 	Pattern.compile("^\\s*([A-Z]+)\\s+([a-zA-Z][a-zA-Z0-9_]*)\\s+([^\\s#]+)\\s*$");
 
 	// @returns Index of last processed line
 	private static int parseSetvarLine(ArrayList<String> _lines, int start) {
@@ -834,12 +850,14 @@ public class CASTConfigParser {
 		String line = (String) _lines.get(i);
 		Matcher m = m_regexConfigVar.matcher(line);
 		if (! m.matches()) {
-			//System.out.println(" ... not matched: " + line);
+			System.err.println(ERROR_LABEL + "Invalid expression: " + line);
 			return i;
 		}
+
 		String cmd = m.group(1);
 		String token = m.group(2);
 		String value = m.group(3);
+
 		if (value.startsWith("<multiline>")) {
 			i++;
 			if (value.length() < 12) value = "";
@@ -855,14 +873,40 @@ public class CASTConfigParser {
 				i++;
 			}
 		}
+
 		if (cmd.equals(CMD_VARDEFAULT)) {
 			if (m_configVars.containsKey(token)) {
 				//System.out.println(token + " ... already defined ");
 				return i;
 			}
 		}
+
 		value = replaceVars(value);
 		//System.out.println(token + " ... Value ... " + value);
+		m_configVars.put(token, value);
+
+		return i;
+	}
+
+	// @returns Index of last processed line
+	private static int parseSethostLine(ArrayList<String> _lines, int start) {
+		int i = start;
+		String line = (String) _lines.get(i);
+		Matcher m = m_regexSethost.matcher(line);
+		if (! m.matches()) {
+			System.err.println(ERROR_LABEL + "Invalid expression: " + line);
+			return i;
+		}
+
+		String cmd = m.group(1);
+		String token = m.group(2);
+		String value = m.group(3);
+
+		token = HOSTVAR_PREFIX + token;
+		value = expandComponentHost(value);
+
+		if (m_bPrintHostInfo) System.out.println(token + "=" + value);
+
 		m_configVars.put(token, value);
 		return i;
 	}
@@ -879,11 +923,17 @@ public class CASTConfigParser {
 			if (end < 0) break;
 			String token = line.substring(pos+2, end);
 			//System.out.println(token);
-			if (m_configVars.containsKey(token)) {
-				res = res + line.substring(lastpos, pos) + m_configVars.get(token);
+
+			if (token.startsWith(HOSTVAR_PREFIX)) {
+			  String value = expandHostVar(token);
+				res = res + line.substring(lastpos, pos) + value;
+			}
+			else if (m_configVars.containsKey(token)) {
+			  String value = m_configVars.get(token);
+				res = res + line.substring(lastpos, pos) + value;
 			}
 			else {
-				System.out.println("CAST parser: Variable %(" + token + ")  not defined.");
+				System.err.println(WARNING_LABEL + "Variable %(" + token + ") not defined.");
 				res = res + line.substring(lastpos, end+1);
 			}
 			lastpos = end + 1;
@@ -895,9 +945,55 @@ public class CASTConfigParser {
 		return res;
 	}
 
+	private static String expandComponentHost(String hostExpr) {
+		if (hostExpr.equals("localhost") || hostExpr.equals("127.0.0.1") ) {
+			return expandHostVar(HOSTVAR_LOCALHOST);
+		}
+		if (hostExpr.startsWith("[") && hostExpr.endsWith("]")) {
+			return expandHostVar(HOSTVAR_PREFIX + hostExpr.substring(1, hostExpr.length()-1));
+		}
+		return hostExpr;
+	}
+
+	private static String expandHostVar(String hostVarName) {
+		if (! hostVarName.startsWith(HOSTVAR_PREFIX)) {
+			throw new RuntimeException("Invalid host variable: " + hostVarName);
+		}
+
+		String value;
+		if (hostVarName.equals(HOSTVAR_LOCALHOST)) {
+			if (m_configVars.containsKey(HOSTVAR_LOCALHOST)) {
+				value = m_configVars.get(HOSTVAR_LOCALHOST);
+			}
+			else {
+				value = "localhost";
+				m_configVars.put(HOSTVAR_LOCALHOST, value);
+				System.err.println(WARNING_LABEL + "No IP set for 'localhost'");
+			}
+		}
+		else if (m_configVars.containsKey(hostVarName)) {
+			value = m_configVars.get(hostVarName);
+		
+			// Check if a host variable expands to localhost. Try to expand it further if it does.
+			if (value.equals("localhost") || value.equals("127.0.0.1")) {
+				value = expandHostVar(HOSTVAR_LOCALHOST);
+			}
+		}
+		else {
+			System.err.println(WARNING_LABEL + "Undefined host: '" +
+				 	hostVarName.substring(HOSTVAR_PREFIX.length()) +
+					"'. The host 'localhost' will be used.");
+			value = expandHostVar(HOSTVAR_LOCALHOST);
+			m_configVars.put(hostVarName, value);
+		}
+			
+		return value;
+	}
+
 	private static void expandVars(ArrayList<String> _lines) {
 		ArrayList<String> orgLines = new ArrayList<String>(_lines);
 		_lines.clear();
+		boolean headerFound = false;
 
 		for (int i = 0; i < orgLines.size(); i++) {
 			String line = (String) orgLines.get(i);
@@ -905,9 +1001,22 @@ public class CASTConfigParser {
 			if (line.startsWith(COMMENT_CHAR)) {
 				_lines.add(line);
 			}
+			else if (isHeader(line)) {
+				headerFound = true;
+				_lines.add(replaceVars(line));
+			}
 			else {
 				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)) {
 					i = parseSetvarLine(orgLines, i);
+				}
+				else if (line.startsWith(CMD_SETHOST)) {
+					if (headerFound) {
+						System.err.println(ERROR_LABEL + CMD_SETHOST +
+							   	" directives must preceede any other directives"
+								+ " except " + CMD_VARSET + " and " + CMD_VARDEFAULT + ".");
+					}
+					else
+					   	i = parseSethostLine(orgLines, i);
 				}
 				else {
 					_lines.add(replaceVars(line));
@@ -927,7 +1036,7 @@ public class CASTConfigParser {
 
 			String line = (String) _lines.get(i);
 
-			// System.out.println("line: " + line);
+			//System.out.println(String.format("root line %1$03d: %2$s", i, line));
 
 			if (!line.startsWith(COMMENT_CHAR)) {
 
@@ -989,7 +1098,7 @@ public class CASTConfigParser {
 				if (isHeader(line)) {
 					break;
 				} else {
-					// System.out.println(line);
+					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
 					parseSubarchitectureComponentLine(line, subarch);
 				}
 			}
@@ -1033,6 +1142,7 @@ public class CASTConfigParser {
 									+ _line);
 				}
 			}
+			componentHost = expandComponentHost(componentHost);
 
 			ComponentLanguage procLang;
 			if (lang.equals(CPP_FLAG)) {
@@ -1106,6 +1216,7 @@ public class CASTConfigParser {
 			} else {
 				subarchHost = m_defaultHost;
 			}
+			subarchHost = expandComponentHost(subarchHost);
 
 			return new SubarchitectureConfiguration(subarchName, subarchHost);
 
@@ -1312,11 +1423,11 @@ public class CASTConfigParser {
 						"No architecture or subarchitecture configuration information found");
 			}
 
-			SubarchitectureConfiguration singleSubarch = m_subarchitectures
-					.get(0);
-			System.err
-					.println("WARNING: No full architecture information found, configuring with first subarchitecture found = "
-							+ singleSubarch.getName());
+			SubarchitectureConfiguration singleSubarch = m_subarchitectures.get(0);
+			System.err.println(WARNING_LABEL +
+					"No full architecture information found,"
+					+ " configuring with first subarchitecture found"
+					+ " = '" + singleSubarch.getName() + "'");
 
 			ArchitectureConfiguration singleSAArch = new ArchitectureConfiguration();
 			singleSAArch.addSubarchitectureConfiguration(singleSubarch);

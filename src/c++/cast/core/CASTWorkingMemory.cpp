@@ -29,9 +29,7 @@ using namespace cast::cdl;
 
 namespace cast {
 
-
-
-  CASTWorkingMemory::CASTWorkingMemory() {
+    CASTWorkingMemory::CASTWorkingMemory() {
 
 #ifdef SYNC_MEMORY_ACCESS
 
