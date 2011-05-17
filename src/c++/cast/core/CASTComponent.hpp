@@ -32,6 +32,7 @@
 #include <map>
 
 #include <IceUtil/Thread.h> 
+#include <IceUtil/IceUtil.h>
 #include <Ice/ObjectAdapter.h> 
 #include <Ice/Communicator.h> 
 
@@ -607,8 +608,39 @@ namespace cast {
     }
 
     ComponentLoggerPtr m_logger;    
+
+    /***
+     * A class that locks a CASTComponent on construction and unlocks it on
+     * destruction, eg. when going out of scope.
+     *
+     * @see IceUtil::Mutex, IceUtil::Mutex::Lock
+     *
+     * Example:
+     *   a) an error can keep a component locked indefinitely
+     *    void MyComponent::BadExample() {
+     *      lockComponent();
+     *      throw runtime_error("something went wrong");
+     *      unlockComponent(); // the component is never unlocked
+     *    }
+     *
+     *   b) the lock is removed on error
+     *    void MyComponent::GoodExample() {
+     *      CASTComponent::Lock lock(this);
+     *      throw runtime_error("something went wrong");
+     *      // lock is destroyed during stack unwinding and the component is unlocked.
+     *    }
+     */
+    class Lock
+      : private IceUtil::Mutex::Lock
+    {
+      public:
+	Lock(CASTComponent* pComponent)
+	  : IceUtil::Mutex::Lock(pComponent->m_componentMutex)
+	{
+	}
+    };
   };
-	
+
 } //namspace cast
 
 
