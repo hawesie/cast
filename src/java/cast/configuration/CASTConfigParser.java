@@ -1300,6 +1300,7 @@ public class CASTConfigParser {
 
 	private static String parseInclude(String _line, String _pathToParent) throws FileNotFoundException {
 		String includeFile = _line.substring(INCLUDE_FLAG.length() + 1);
+		includeFile = includeFile.trim();
 
 		File f = new File(includeFile);
 		//if an absolute file, just return
