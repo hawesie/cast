@@ -661,8 +661,6 @@ public class SubarchitectureWorkingMemory extends SubarchitectureComponent
 		if (getSubarchitectureID().equals(_subarch)) {
 			m_writeLock.lock();
 
-			// DANGER this might produce an exception... change to critical
-			// section
 			WorkingMemoryEntry entry;
 			try {
 				entry = deleteFromWorkingMemory(_id, _component);
@@ -814,23 +812,33 @@ public class SubarchitectureWorkingMemory extends SubarchitectureComponent
 			throws DoesNotExistOnWMException, UnknownSubarchitectureException {
 		// if this is for me
 		if (getSubarchitectureID().equals(_subarch)) {
-			//
+
+			// first gain a lock... using the shared lock as the only
+			// state-changing act is internally synchronised anyway
+			m_readLock.lock();
+
 			if (m_workingMemory.contains(_id)) {
 
 				// debug("%s locking: %s",_component.c_str(),_id.c_str());
+
 				try {
+					// now unlock incase the WM locking blocks
+					m_readLock.unlock();
 					m_permissions.lock(_id, _component, _perm);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					logException(e);
+				} finally {
+					// relock so we're back in control
+					m_readLock.lock();
 				}
-				// lockComponent();
 
 				// now check that it still exists, because it could've been
 				// deleted before the lock was released
 				if (!m_workingMemory.contains(_id)) {
 					m_permissions.unlock(_id, _component);
+					m_readLock.unlock();
 					throw new DoesNotExistOnWMException(
-							"Entry deleted whiile waiting for lock. Component "
+							"Entry deleted while waiting for lock. Component "
 									+ _component + "  was looking in subarch "
 									+ _subarch + " for id " + _id,
 							new WorkingMemoryAddress(_id, _subarch));
@@ -842,12 +850,16 @@ public class SubarchitectureWorkingMemory extends SubarchitectureComponent
 			}
 			// else kick up a fuss
 			else {
+				m_readLock.unlock();
 				throw new DoesNotExistOnWMException(
 						"Entry deleted whiile waiting for lock. Component "
 								+ _component + "  was looking in subarch "
 								+ _subarch + " for id " + _id,
 						new WorkingMemoryAddress(_id, _subarch));
 			}
+			
+			m_readLock.unlock();
+
 		} else {
 			getWorkingMemory(_subarch).lockEntry(_id, _subarch, _component,
 					_perm);
@@ -1022,16 +1034,22 @@ public class SubarchitectureWorkingMemory extends SubarchitectureComponent
 		// if this is for me
 		if (getSubarchitectureID().equals(_subarch)) {
 			//
+			
+			m_readLock.lock();
+
+			
 			if (m_workingMemory.contains(_id)) {
 
 				// this wasn't in the original design, but seems necessary now
 				// we can do this at wm level
 				if (!m_permissions.isLocked(_id)) {
+					m_readLock.unlock();
 					throw new ConsistencyException("Entry is not locked. "
 							+ _component + " was looking in subarch "
 							+ _subarch + " for id " + _id,
 							new WorkingMemoryAddress(_id, _subarch));
 				} else if (!m_permissions.getLockHolder(_id).equals(_component)) {
+					m_readLock.unlock();
 					throw new ConsistencyException("Entry is locked, but by "
 							+ m_permissions.getLockHolder(_id) + " not  "
 							+ _component + ", who was looking in subarch"
@@ -1044,11 +1062,16 @@ public class SubarchitectureWorkingMemory extends SubarchitectureComponent
 			}
 			// else kick up a fuss
 			else {
+				m_readLock.unlock();
 				throw new DoesNotExistOnWMException(
 						"Entry does not exist for unlocking. Was looking in subarch "
 								+ _subarch + " for id " + _id,
 						new WorkingMemoryAddress(_id, _subarch));
 			}
+			
+			m_readLock.unlock();
+
+			
 		} else {
 			// get the correct wm and query that instead
 			getWorkingMemory(_subarch).unlockEntry(_id, _subarch, _component);
