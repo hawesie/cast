@@ -621,6 +621,7 @@ namespace cast {
     serverAddr << getCommunicator()->identityToString(id)
 	       << ":default -h " << _host << " -p " << _port;
     
+    //debug("getIceServer '%s'", serverAddr.str());
     Ice::ObjectPrx base = getCommunicator()->stringToProxy(serverAddr.str());
     
     return base;
