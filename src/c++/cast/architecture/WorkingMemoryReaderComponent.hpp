@@ -535,7 +535,7 @@ namespace cast {
       
       //if copy required on read
       if(m_copyOnRead) {
-        for (int i = 0; i < _entries.size(); ++i) {
+        for (unsigned int i = 0; i < _entries.size(); ++i) {
           _entries[i] = new cdl::WorkingMemoryEntry(_entries[i]->id,_entries[i]->type,_entries[i]->version, _entries[i]->entry->ice_clone());
         }        
       }
