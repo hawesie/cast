@@ -91,6 +91,7 @@ public class CASTWMPermissionMap {
 		lockMap();
 		// if this is an invalid entry, return;
 		if (!live(_id)) {
+			unlockMap();
 			return;
 		}
 
