@@ -211,4 +211,137 @@ JAVA MG director comedyarch.Director --audience audience.subarch --log  #--debug
 \endverbatim
 
 
+\section config_includes Including parts of configuration files
+
+Configuration files may grow in a complex system. In this case one would split
+the configuration file in multiple parts and include the parts in the main
+file. This can be done with the <code>INCLUDE</code> statement:
+
+\verbatim
+# ----- file: main.cast -----
+INCLUDE  stage_subarch.cast
+
+# ----- file_ stage_subarch.cast
+SUBARCHITECTURE stage.subarch 
+CPP WM SubarchitectureWorkingMemory  --log --debug
+CPP TM AlwaysPositiveTaskManager #--log --debug
+JAVA UM straight.man comedyarch.StraightMan -s "what's brown and sticky" --log --debug
+CPP MG funny.man FunnyMan --punchline "a stick" --log --debug
+\endverbatim
+
+The <code>INCLUDE</code> statement accepts a file path that is relative to the
+directory in which the currently processed file resides.
+
+\section config_variables Setting and using variables
+(SETVAR, VARDEFAULT introduced in version 2.1.13)
+
+Sometimes multiple components use the same setting which has to be entered in
+the arguments of every component. To simplify the modification of such
+arguments, variables can be used with the keywords <code>SETVAR</code> and
+<code>VARDEFAULT</code>. With <code>SETVAR</code> the value of a variable is
+changed unconditionally while <code>VARDEFAULT</code> sets the value of a
+variable only if the variable was not defined before.
+
+\verbatim
+SETVAR punchline="a brown stick"
+VARDEFAULT punchline="a stick"
+VARDEFAULT string="what's brown and sticky"
+\endverbatim
+
+In this case the variable <code>punchline</code> has the value <code>"a brown
+stick"</code> and the value of <code>string</code> is <code>"what's brown and
+sticky"</code>. Note that everything after <code>=</code> is part of the
+variables value, including the quotes.
+
+The value of the variable can be used in the argument part of a configuration
+line with the variable expansion expression <code>%(varname)</code>:
+
+\verbatim
+JAVA UM straight.man comedyarch.StraightMan -s %(string) --log --debug
+CPP MG funny.man FunnyMan --punchline %(punchline) --log --debug
+\endverbatim
+
+Variables can span multiple lines if the right-hand-side of the variable
+definition is <code>&lt;multiline&gt;</code>. The value of the variable spans
+until the line that contains only <code>&lt;/multiline&gt;</code>:
+
+\verbatim
+SETVAR punchline=a brown stick
+VARDEFAULT string=what's brown and sticky
+
+SETVAR straight_params=<multiline>
+   -s "%(string)"
+   # --log --debug
+</multiline>
+JAVA UM straight.man comedyarch.StraightMan %(straight_params)
+
+SETVAR funny_params=<multiline>
+   --punchline "%(punchline)"
+   --log --debug
+</multiline>
+CPP MG funny.man FunnyMan %(funny_params)
+\endverbatim
+
+The lines that are inside the <code>&lt;multiline&gt;</code> section are
+concatenated with a single space except for the lines that start with
+<code>#</code> which are ignored.
+
+This example also shows that the value of a variable can be used inside the
+right-hand-side of another variable.
+
+
+\subsection config_special_vars Special variables
+
+The configuration parser sets the following variables every time a new
+configuration file is included:
+
+<ul>
+   <li>CONFIG_DIR - the directory of the main configuration file
+   <li>CURRENT_DIR - the directory of the current (included) configuration file
+   <li>CURRENT_FILE - the filename of the current (included) configuration file
+</ul>
+
+This variables can be used to reference extra files needed by some components
+with relative filenames:
+
+\verbatim
+SETVAR camera_config=%(CURRENT_DIR)/config/camera.ini
+\endverbatim
+
+\section config_distributed Distributed execution
+(HOSTNAME introduced in version 2.1.13)
+
+As stated above every component can be executed on a different host which can be
+set with the HOST statement or with the address of the host in a component
+definition command. Defining hosts in such a way is very non-portable.
+
+To make the configuration files more portable, the command
+<code>HOSTNAME</code> can be used. The command must be placed in a
+configuration file before any other command except <code>SETVAR</code>,
+<code>VARDEFAULT</code> and <code>INCLUDE</code> (which can again include only
+the four commands mentioned here).
+
+The defined host-name can be used in the form <code>[host-name]</code> anywhere
+a host address is recognized by the config parser, as described with each
+command above. A host name can additionally be used in a variable expansion
+expression as <code>%(host:host-name)</code>.
+
+In the following case the component <code>laser.server</code> is started on
+<code>localhost</code> (<code>LaserHost -&gt; Main -&gt; localhost</code>)
+while the component <code>robot.server</code> starts on the host
+<code>PlayerHost</code> (<code>192.168.26.34</code>). Both components connect
+to an instance of the Player server which is also running on the host
+<code>PlayerHost</code>.
+
+\verbatim
+HOSTNAME   Main        localhost
+HOSTNAME   PlayerHost  192.168.26.34
+HOSTNAME   LaserHost   [Main]
+
+HOST       [Main]
+COMPONENT  [LaserHost] CPP laser.server LaserServerPlayer --player-host %(host:PlayerHost)
+
+COMPONENT  [PlayerHost] CPP robot.server RobotbaseServerPlayer --player-host %(host:PlayerHost)
+\endverbatim
+
 */
