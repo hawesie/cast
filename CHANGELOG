@@ -1,3 +1,9 @@
+2.1.15
+
+2012-06-28  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Fixed bug in Java WM that caused an assertion when a component was trying to read an entry that was locked then deleted.
+
 2.1.14
 
 2012-06-06  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>

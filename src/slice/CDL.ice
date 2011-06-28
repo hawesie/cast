@@ -7,7 +7,7 @@ module cast
   module cdl
   {
 
-    const string CASTRELEASESTRING = "2.1.14 (Muscle Memory)";
+    const string CASTRELEASESTRING = "2.1.15 (The Greatest Light Is The Greatest Shade)";
 
     const int JAVASERVERPORT = 10111;
     const int CPPSERVERPORT = 10211;
