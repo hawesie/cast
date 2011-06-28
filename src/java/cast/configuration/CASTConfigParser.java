@@ -1262,6 +1262,16 @@ public class CASTConfigParser {
 				.setWorkingMemory(className, _procLang, _componentHost, config);
 	}
 
+	private static String simpleRelativeFilename(String filename, String basename)
+	{
+		if (filename.startsWith(basename)) {
+		  filename = filename.substring(basename.length());
+			if (filename.startsWith("/")) filename = filename.substring(1);
+			if (filename.equals("")) filename = ".";
+		}
+		return filename;
+	}
+
 	/**
 	 * @param _filename
 	 * @return
@@ -1275,8 +1285,11 @@ public class CASTConfigParser {
 		FileReader fileRead = new FileReader(configFile);
 		BufferedReader reader = new BufferedReader(fileRead);
 		StringBuffer sb = new StringBuffer();
+		String cwd = new File(".").getCanonicalPath();
+		String curdir = simpleRelativeFilename(configFile.getAbsoluteFile().getParent(), cwd);
 
-		_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + configFile.getAbsoluteFile().getParent());
+		_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + curdir);
+		System.out.println(VAR_CURRENT_DIR + "=" + curdir);
 
 		String line;
 		while (reader.ready()) {
@@ -1286,7 +1299,7 @@ public class CASTConfigParser {
 				String includeFile = parseInclude(line, configFile.getParent());
 				//recurse into include
 				readFile(includeFile, _lines);
-				_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + configFile.getAbsoluteFile().getParent());
+				_lines.add("SETVAR " + VAR_CURRENT_DIR + "=" + curdir);
 			} else {
 				_lines.add(line);
 				sb.append(line);
@@ -1371,16 +1384,22 @@ public class CASTConfigParser {
 		try {
 			init();
 			ArrayList<String> lines = new ArrayList<String>();
+			String cwd = new File(".").getCanonicalPath();
+			File configFile = new File(_filename);
+			String configDir = simpleRelativeFilename(configFile.getAbsoluteFile().getParent(), cwd);
+
+			System.out.println("WORKING_DIR=" + cwd);
+			System.out.println(VAR_CONFIG_DIR + "=" + configDir);
+			m_configVars.put(VAR_CONFIG_DIR, configDir);
+			m_currentFile = _filename;
 			readFile(_filename, lines);
 			m_currentFile = _filename;
+			expandVars(lines);
+			if (!configDir.equals(m_configVars.get(VAR_CONFIG_DIR)))
+			  System.out.println("!!! " + VAR_CONFIG_DIR + "=" + m_configVars.get(VAR_CONFIG_DIR));
+
 			// setup container to hold everything
 			m_architecture = new ArchitectureConfiguration();
-
-			File configFile = new File(_filename);
-			m_configVars.put(VAR_CONFIG_DIR, configFile.getAbsoluteFile().getParent());
-			expandVars(lines);
-			System.out.println(VAR_CONFIG_DIR + "=" + m_configVars.get(VAR_CONFIG_DIR));
-
 			processLines(lines);
 			m_extras = parseExtras(lines);
 		} catch (FileNotFoundException e) {
