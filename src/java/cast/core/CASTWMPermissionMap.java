@@ -53,8 +53,7 @@ public class CASTWMPermissionMap {
 	private final void lockMap() {
 		try {
 			m_access.acquire();
-		}
-		catch (InterruptedException e) {
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
@@ -76,6 +75,7 @@ public class CASTWMPermissionMap {
 				false));
 		unlockMap();
 	}
+
 	/**
 	 * Acquires the lock for the entry given by the id. Blocks until the lock is
 	 * available.
@@ -119,8 +119,7 @@ public class CASTWMPermissionMap {
 		if (!live(_id)) {
 			assert (mutex != null);
 			mutex.release();
-		}
-		else {
+		} else {
 			ps = m_permissions.get(_id);
 			ps.m_permissions = _permission;
 			ps.m_owner = _component;
@@ -137,8 +136,7 @@ public class CASTWMPermissionMap {
 		PermissionsStruct ps = m_permissions.get(_id);
 		if (ps != null && !ps.m_scheduledForDeletion) {
 			return true;
-		}
-		else {
+		} else {
 			return false;
 		}
 
@@ -155,18 +153,15 @@ public class CASTWMPermissionMap {
 		if (ps == null) {
 			// cout<<"CASTWMPermissionsMap::unlock leaving deleted item:
 			// "<<_id<<" "<<_component<<endl;
-		}
-		else if (ps.m_lockCount == 0) {
+		} else if (ps.m_lockCount == 0) {
 			// cout<<"CASTWMPermissionsMap::unlock leaving unlocked item:
 			// "<<_id<<" "<<_component<<endl;
-		}
-		else if (ps.m_lockCount > 1) {
+		} else if (ps.m_lockCount > 1) {
 			assert (ps.m_owner.equals(_component));
 			// cout<<"CASTWMPermissionsMap::unlock reduce recursive lock:
 			// "<<_id<<" "<<_component<<endl;
 			ps.m_lockCount--;
-		}
-		else {
+		} else {
 			if (!CASTUtils.deleteAllowed(ps.m_permissions)) {
 				assert (ps.m_owner.equals(_component));
 			}
@@ -294,8 +289,7 @@ public class CASTWMPermissionMap {
 			// missing
 			// entry"<<_id<<endl;
 			perm = WorkingMemoryPermissions.DOESNOTEXIST;
-		}
-		else {
+		} else {
 			perm = ps.m_permissions;
 		}
 		unlockMap();
@@ -357,8 +351,16 @@ public class CASTWMPermissionMap {
 	public String getLockHolder(String _id) {
 		lockMap();
 		PermissionsStruct ps = m_permissions.get(_id);
-		assert (ps != null);
-		String owner = ps.m_owner;
+
+		// TODO find something more elegant
+		// assert (ps != null);
+		// if the struct does not exist, don't throw a fit
+		String owner;
+		if (ps == null) {
+			owner = "permissions deleted for: " + _id;
+		} else {
+			owner = ps.m_owner;
+		}
 		unlockMap();
 		return owner;
 	}

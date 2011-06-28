@@ -6,7 +6,7 @@
 using namespace std;
 
 namespace cast {
- 
+  
   CASTWMPermissionsMap::CASTWMPermissionsMap() {
     pthread_mutexattr_t attr;
     // note: errors here are very unlikely, so we just do a "weaker" overall
@@ -15,7 +15,7 @@ namespace cast {
     if(err != 0) {
       throw CASTException(exceptionMessage(__HERE__, "failed to create mutex: %s", strerror(err)));
     }
-
+    
 #ifdef __LINUX__    
     //nah: this doesn't work, and isn't necessary, on macs for some reason
     err = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
@@ -23,13 +23,13 @@ namespace cast {
       throw CASTException(exceptionMessage(__HERE__, "failed to create mutex: %s", strerror(err)));
     }
 #endif
-
-//     err = pthread_mutexattr_settype(&attr,
-// 				    PTHREAD_MUTEX_RECURSIVE);
-//     if(err != 0) {
-//       throw CASTException(exceptionMessage(__HERE__, "failed to create mutex: %s", strerror(err)));
-//     }
-
+    
+    //     err = pthread_mutexattr_settype(&attr,
+    // 				    PTHREAD_MUTEX_RECURSIVE);
+    //     if(err != 0) {
+    //       throw CASTException(exceptionMessage(__HERE__, "failed to create mutex: %s", strerror(err)));
+    //     }
+    
     //init mutex in map
     err = pthread_mutex_init(&m_access, &attr);
     if(err != 0) {
@@ -37,7 +37,7 @@ namespace cast {
     }
     
   }
-
+  
   /**
    * Add an entry to the map. The entry is unlocked by default.
    * 
@@ -60,7 +60,7 @@ namespace cast {
     if(err != 0) {
       throw CASTException(exceptionMessage(__HERE__, "failed to create mutex: %s", strerror(err)));
     }
-
+    
 #ifdef __LINUX__    
     //nah: this doesn't work, and isn't necessary, on macs for some reason
     err = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
@@ -69,17 +69,17 @@ namespace cast {
       throw CASTException(exceptionMessage(__HERE__, "failed to create mutex: %s", strerror(err)));
     }
 #endif
-
+    
     //init mutex in map
     err = pthread_mutex_init(&(m_permissionsMap[_id].m_mutex), &attr);
     if(err != 0) {
       unlockMap();
       throw CASTException(exceptionMessage(__HERE__, "failed to create mutex: %s", strerror(err)));
     }
-
+    
     unlockMap();
   }
-
+  
   /**
    * Acquires the lock for the entry given by the id. Blocks until the lock is
    * available.
@@ -88,9 +88,9 @@ namespace cast {
    * @throws InterruptedException
    */
   void CASTWMPermissionsMap::lock(const std::string & _id, 
-				  const std::string & _component,
-				  const cdl::WorkingMemoryPermissions & _permissions) throw(CASTException) {
-
+                                  const std::string & _component,
+                                  const cdl::WorkingMemoryPermissions & _permissions) throw(CASTException) {
+    
     lockMap();
     pthread_mutex_t * mutex = NULL;
     //use a block to double-check we don't touch that iterator
@@ -98,8 +98,8 @@ namespace cast {
     {
       //if this is an invalid entry, return;
       if(!live(_id)) {
-	unlockMap();
-	return;
+        unlockMap();
+        return;
       }
       
       PermissionsMap::iterator i = m_permissionsMap.find(_id);
@@ -108,56 +108,56 @@ namespace cast {
       
       //if this lock is already owned by the locking component
       if(i->second.m_owner == _component) {
-	assert(_permissions == i->second.m_permissions);
-	assert(i->second.m_lockCount > 0);
-	i->second.m_lockCount++;
-	cout<<"CASTWMPermissionsMap::lock recursive lock: "<<_id<<" "<<_component<<endl;
-	unlockMap();
-	return;
+        assert(_permissions == i->second.m_permissions);
+        assert(i->second.m_lockCount > 0);
+        i->second.m_lockCount++;
+        cout<<"CASTWMPermissionsMap::lock recursive lock: "<<_id<<" "<<_component<<endl;
+        unlockMap();
+        return;
       }
-            
+      
       mutex = (&(i->second.m_mutex));
       
     }
     unlockMap();
-      
+    
     //block until mutex is locked
     lockMutex(mutex);      
     
-
+    
     lockMap();    
     {
       //if this is now invalid entry, return;
       if(!live(_id)) {
-	cout<<"CASTWMPermissionsMap::unlocking dead mutex: "<<_id<<" "<<_component<<endl;
-	assert(mutex != NULL);
-	unlockMutex(mutex);
+        cout<<"CASTWMPermissionsMap::unlocking dead mutex: "<<_id<<" "<<_component<<endl;
+        assert(mutex != NULL);
+        unlockMutex(mutex);
       }
       else {      
-	PermissionsMap::iterator i = m_permissionsMap.find(_id);
-	i->second.m_permissions = _permissions;
-	i->second.m_owner = _component;
-	i->second.m_lockCount = 1;
-	i->second.m_scheduledForDeletion = false;
+        PermissionsMap::iterator i = m_permissionsMap.find(_id);
+        i->second.m_permissions = _permissions;
+        i->second.m_owner = _component;
+        i->second.m_lockCount = 1;
+        i->second.m_scheduledForDeletion = false;
       }
     }
     unlockMap();
-
+    
   }
-
+  
   /**
    * Release the lock for the entry given by the id.
    * 
    * @param _id
    */
   void CASTWMPermissionsMap::unlock(const std::string & _id,
-				    const std::string & _component) 
-    throw (CASTException) {
-
+                                    const std::string & _component) 
+  throw (CASTException) {
+    
     lockMap();
     PermissionsMap::iterator i = m_permissionsMap.find(_id);    
     if (i == m_permissionsMap.end()) {
-      cout<<"CASTWMPermissionsMap::unlock leaving deleted item: "<<_id<<" "<<_component<<endl;
+      //      cout<<"CASTWMPermissionsMap::unlock leaving deleted item: "<<_id<<" "<<_component<<endl;
     }
     else if(i->second.m_lockCount == 0) {
       cout<<"CASTWMPermissionsMap::unlock leaving unlocked item: "<<_id<<" "<<_component<<endl;
@@ -170,7 +170,7 @@ namespace cast {
     else {
       
       if (!deleteAllowed(i->second.m_permissions)) {
-	assert (i->second.m_owner ==_component);            
+        assert (i->second.m_owner ==_component);            
       }
       i->second.m_permissions = cdl::UNLOCKED;
       i->second.m_owner = "";
@@ -178,11 +178,11 @@ namespace cast {
       unlockMutex(&(i->second.m_mutex));
     }
     unlockMap();
- 
-
+    
+    
   }
-
-
+  
+  
   /**
    * Trys to acquire the lock for the entry given by the id. Only obtains one
    * if one is available.
@@ -191,10 +191,10 @@ namespace cast {
    * @throws InterruptedException
    */
   bool CASTWMPermissionsMap::tryLock(const std::string & _id, 
-				     const std::string & _component,
-				     const cdl::WorkingMemoryPermissions & _permissions)
-    throw(CASTException) {
-
+                                     const std::string & _component,
+                                     const cdl::WorkingMemoryPermissions & _permissions)
+  throw(CASTException) {
+    
     lockMap();
     bool ret = false;
     PermissionsMap::iterator i = m_permissionsMap.find(_id);    
@@ -210,27 +210,27 @@ namespace cast {
     else {
       //if we already actually hold the lock
       if(i->second.m_lockCount > 0) {
-	assert(i->second.m_permissions == _permissions);
-	i->second.m_lockCount++;
-	cout<<"CASTWMPermissionsMap::tryLock recursive lock: "<<_id<<" "<<_component<<endl;
+        assert(i->second.m_permissions == _permissions);
+        i->second.m_lockCount++;
+        cout<<"CASTWMPermissionsMap::tryLock recursive lock: "<<_id<<" "<<_component<<endl;
       }
       //otherwise setup the details and lock away
       else {
-	cout<<"CASTWMPermissionsMap::tryLock normal lock: "<<_id<<" "<<_component<<endl;
-	lockMutex(&(i->second.m_mutex));
-	i->second.m_permissions = _permissions;
-	i->second.m_owner = _component;
-	i->second.m_lockCount = 1;
-	i->second.m_scheduledForDeletion = false;
+        cout<<"CASTWMPermissionsMap::tryLock normal lock: "<<_id<<" "<<_component<<endl;
+        lockMutex(&(i->second.m_mutex));
+        i->second.m_permissions = _permissions;
+        i->second.m_owner = _component;
+        i->second.m_lockCount = 1;
+        i->second.m_scheduledForDeletion = false;
       }
       ret = true;      
     }
-
+    
     unlockMap();
     return ret;
     
   }
-
+  
   /**
    * Checks whether the given entry is locked.
    * 
@@ -248,7 +248,7 @@ namespace cast {
     unlockMap();
     return ret;
   }
-
+  
   /**
    * Checks whether the given entry is locked.
    * 
@@ -256,8 +256,8 @@ namespace cast {
    * @return
    */
   bool CASTWMPermissionsMap::isLockHolder(const std::string & _id, 
-					  const std::string & _component) const {
-
+                                          const std::string & _component) const {
+    
     lockMap();
     PermissionsMap::const_iterator i = m_permissionsMap.find(_id);    
     bool ret = false;
@@ -267,7 +267,7 @@ namespace cast {
     unlockMap();
     return ret;
   }
-
+  
   bool CASTWMPermissionsMap::contains(const std::string & _id) const {
     
     lockMap();
@@ -283,7 +283,7 @@ namespace cast {
     
     return ret;
   }
-
+  
   /**
    * Gets the permissions for the given entry.
    * 
@@ -299,16 +299,16 @@ namespace cast {
       unlockMap();
       return cdl::DOESNOTEXIST;
     }
-
+    
     const cdl::WorkingMemoryPermissions & perms(i->second.m_permissions);
     
     unlockMap();
     
     return perms;
   }
-
+  
   void CASTWMPermissionsMap::remove(const std::string & _id) {
-
+    
     lockMap();    
     
     PermissionsMap::iterator i = m_permissionsMap.find(_id);       
@@ -344,13 +344,13 @@ namespace cast {
       //need  to get a new iterator
       i = m_permissionsMap.find(_id);
     }
-
+    
     //once we hget here the map is locked and the lock count is 0, so
     //we're good to go again
     m_permissionsMap.erase(i);
     unlockMap();       
   }
-    
+  
   const std::string & CASTWMPermissionsMap::getLockHolder(const std::string & _id) const {
     
     lockMap();
@@ -362,5 +362,5 @@ namespace cast {
     return holder;
   }
   
-    
+  
 } 

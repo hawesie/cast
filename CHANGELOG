@@ -1,3 +1,10 @@
+2.1.14
+
+2012-06-06  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Added synchronisation code (back) into the WM code for lockEntry, unlockEntry and tryLockEntry. This makes this code thread safe and handles the deletion of locked entries cleanly.
+
+
 2.1.13
 
 2012-15-05  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>

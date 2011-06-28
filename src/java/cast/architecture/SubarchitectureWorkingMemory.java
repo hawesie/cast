@@ -314,7 +314,7 @@ public class SubarchitectureWorkingMemory extends SubarchitectureComponent
 			if (!CASTUtils.deleteAllowed(permissions)) {
 				// we're going to assume that client checking is up to scratch
 				assert (m_permissions.isLockHolder(_id, _component));
-				log(_component + " is NOT allowed to delete " + _id);
+				log(_component + " is the lock holder for the delete-locked entry " + _id);
 			} else {
 				// could just be an overwrite lock, in which case it doesn't
 				// matter who is the lock holder
@@ -797,10 +797,14 @@ public class SubarchitectureWorkingMemory extends SubarchitectureComponent
 		if (getSubarchitectureID().equals(_subarch)) {
 			// println("local query");
 			m_readLock.lock();
-			WorkingMemoryEntry entry;
+			WorkingMemoryEntry entry = null;
 			try {
 				entry = getEntryByID(_id, _component);
-			} finally {
+			} 
+//			catch(Throwable t) {
+//				logException(t);
+//			}
+			finally {
 				m_readLock.unlock();
 			}
 			return entry;
