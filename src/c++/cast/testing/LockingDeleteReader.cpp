@@ -1,43 +1,34 @@
-#include "DirectAccessReader.hpp"
+#include "LockingDeleteReader.hpp"
 
 using namespace cast;
 using namespace cast::cdl;
 
 extern "C" {
   cast::CASTComponentPtr newComponent() {
-    return new DirectAccessReader();
+    return new LockingDeleteReader();
   }
 }
 
 
-void DirectAccessReader::start() {
+void LockingDeleteReader::start() {
   addChangeFilter(createLocalTypeFilter<TestStructInt>(cdl::ADD),
-                  new MemberFunctionChangeReceiver<DirectAccessReader>( this,
-                                                                       &DirectAccessReader::testStructAdded));  
+                  new MemberFunctionChangeReceiver<LockingDeleteReader>( this,
+                                                                       &LockingDeleteReader::testStructAdded));  
 }
 
-void DirectAccessReader::testStructAdded(const cast::cdl::WorkingMemoryChange & _wmc) {
-  TestStructIntPtr tsi = getMemoryEntry<TestStructInt>(_wmc.address);
-  
-  //switch behaviour between check and alter
-  bool alter = false;
-  
-  if(alter) {
-    tsi->dummy++;
+void LockingDeleteReader::testStructAdded(const cast::cdl::WorkingMemoryChange & _wmc) {
+
+  //Delay a little to ensure lock has happened
+  sleepComponent(1000);
+
+  println("trying to read");
+  try {
+    TestStructIntPtr tsi = getMemoryEntry<TestStructInt>(_wmc.address);
+  println("read");    
   }
-  else {
-    int startingValue = tsi->dummy;
-    
-    while(isRunning()) {
-      tsi = getMemoryEntry<TestStructInt>(_wmc.address);
-      if (tsi->dummy != startingValue) {
-        throw(CASTException("Value has changed!"));
-      }
-      else {
-        println("fine");
-      }
-      sleepComponent(1000);
-    }
-    
+  catch(const DoesNotExistOnWMException &e) {
+    error(e.what());
   }
+
+  
 }

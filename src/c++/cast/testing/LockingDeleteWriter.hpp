@@ -20,15 +20,15 @@
  *
  */
 
-#ifndef CAST_DIRECT_ACCESS_WRITER_HPP
-#define CAST_DIRECT_ACCESS_WRITER_HPP
+#ifndef CAST_LOCKING_DELETE_WRITER_HPP
+#define CAST_LOCKING_DELETE_WRITER_HPP
 
 #include <cast/architecture.hpp>
 
-class DirectAccessWriter : public cast::ManagedComponent {
+class LockingDeleteWriter : public cast::ManagedComponent {
   
 public:
-  virtual ~DirectAccessWriter() {};
+  virtual ~LockingDeleteWriter() {};
   
 protected:
   void runComponent();

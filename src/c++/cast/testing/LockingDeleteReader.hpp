@@ -20,15 +20,15 @@
  *
  */
 
-#ifndef CAST_DIRECT_ACCESS_READER_HPP
-#define CAST_DIRECT_ACCESS_READER_HPP
+#ifndef CAST_LOCKING_DELETE_READER_HPP
+#define CAST_LOCKING_DELETE_READER_HPP
 
 #include <cast/architecture.hpp>
 
-class DirectAccessReader : public cast::ManagedComponent {
+class LockingDeleteReader : public cast::ManagedComponent {
   
 public:
-  virtual ~DirectAccessReader() {};
+  virtual ~LockingDeleteReader() {};
   
 protected:
   void start();

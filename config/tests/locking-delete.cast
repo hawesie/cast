@@ -1,0 +1,7 @@
+SUBARCHITECTURE test localhost
+# JAVA WM cast.architecture.SubarchitectureWorkingMemory --debug
+# JAVA TM cast.architecture.AlwaysPositiveTaskManager 
+CPP WM SubarchitectureWorkingMemory
+CPP TM AlwaysPositiveTaskManager 
+CPP MG writer LockingDeleteWriter --debug 
+CPP MG reader LockingDeleteReader --debug

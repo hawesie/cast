@@ -1,42 +1,35 @@
-#include "DirectAccessWriter.hpp"
+#include "LockingDeleteWriter.hpp"
 
 using namespace cast;
 using namespace cast::cdl;
 
 extern "C" {
   cast::CASTComponentPtr newComponent() {
-    return new DirectAccessWriter();
+    return new LockingDeleteWriter();
   }
 }
 
 
-void DirectAccessWriter::runComponent() {
+void LockingDeleteWriter::runComponent() {
   
-  //switch behaviour between check and alter
-  bool check = false;
   
-  // Create a struct with a known value
-  int startingValue = 0;
-  TestStructIntPtr tsi = new TestStructInt(startingValue);
+  // Create a struct
+  TestStructIntPtr tsi = new TestStructInt(0);
   
+  const WorkingMemoryAddress wma = cast::makeWorkingMemoryAddress(newDataID(), getSubarchitectureID());
+
   // and add it to WM
-  addToWorkingMemory(newDataID(), tsi);
+  addToWorkingMemory(wma, tsi);
+  println("added");
   
-  while (isRunning()) {
-    
-    if(check) {
-      // If the value has changed, kick up a fuss
-      if (tsi->dummy != startingValue) {
-        throw(CASTException("Value has changed!"));
-      }
-      else {
-        println("fine");
-      }
-    }
-    else {
-      tsi->dummy++;
-    }
-    sleepComponent(1000);
-  }
+  
+  lockEntry(wma, cdl::LOCKEDODR);
+  println("locked");
+  
+  sleepComponent(5000);
+  
+  deleteFromWorkingMemory(wma);
+  println("deleted");
+
   
 }

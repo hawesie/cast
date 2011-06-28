@@ -42,6 +42,10 @@ add_cast_component_internal(DirectAccessWriter DirectAccessWriter.cpp DirectAcce
 add_cast_component_internal(DirectAccessReader DirectAccessReader.cpp DirectAccessReader.hpp)
 
 
+
+add_cast_component_internal(LockingDeleteWriter LockingDeleteWriter.cpp LockingDeleteWriter.hpp)
+add_cast_component_internal(LockingDeleteReader LockingDeleteReader.cpp LockingDeleteReader.hpp)
+
 # PROJECT(Proposer)
 # SET(SOURCES Proposer.cpp)
 # SET(HEADERS Proposer.hpp)
