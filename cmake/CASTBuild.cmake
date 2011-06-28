@@ -1,4 +1,4 @@
-set(CAST_VERSION "2.1.14")
+set(CAST_VERSION "2.1.15")
 
 MACRO (add_cast_component _name)
   add_library(${_name} SHARED ${ARGN})
