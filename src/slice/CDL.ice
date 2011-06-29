@@ -12,7 +12,7 @@ module cast
     const int JAVASERVERPORT = 10111;
     const int CPPSERVERPORT = 10211;
     const int JAVACLIENTSERVERPORT = 10311;
-    const int PYTHONSERVERPORT = 10112;
+    const int PYTHONSERVERPORT = 10411;
  
     const string SUBARCHIDKEY = "org.cognitivesystem.cast.subarchID"; 
     const string COMPONENTNUMBERKEY = "org.cognitivesystem.cast.componentNumber";
