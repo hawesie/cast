@@ -30,6 +30,7 @@ import cast.configuration.CASTConfigParser;
 import cast.configuration.SubarchitectureConfiguration;
 import cast.configuration.SubarchitectureProxies;
 import cast.core.CASTUtils;
+import cast.core.LoggingApplication;
 import cast.interfaces.CASTComponentPrx;
 import cast.interfaces.ComponentManagerPrx;
 import cast.interfaces.ComponentManagerPrxHelper;
@@ -41,7 +42,7 @@ import cast.interfaces.WorkingMemoryAttachedComponentPrx;
 import cast.interfaces.WorkingMemoryPrx;
 import cast.server.CASTComponentManager;
 
-public class CASTClient extends Application {
+public class CASTClient extends LoggingApplication {
 
 	// public CASTClient() {
 	// //don't handle... means we have to clean up
