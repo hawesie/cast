@@ -42,6 +42,7 @@ namespace cast {
       ComponentLoggerPtr logger = ComponentLogger::getLogger("cast.server.c++.ComponentServer");
       CAST_INFO(logger, "CPP server version: \""<<cdl::CASTRELEASESTRING<<"\"", LogAdditions("cast.server.c++.ComponentServer","","")); 
 
+      
       //streams seem to have memory issues
       //log4cxx::logstream logstream(logger, Level::getInfo());
       //logstream<<"CPP server version: \""<<cdl::CASTRELEASESTRING<<"\""<<LOG4CXX_ENDMSG;

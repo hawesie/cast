@@ -9,10 +9,8 @@ import cast.core.LoggingApplication;
 public class LoggingServer extends LoggingApplication {
 
 	static final int DEFAULT_LOGGER_PORT = LOGGINGPORT.value;
-	final static String DEFAULT_LOGGER_NAME = "LoggingServer";
-	final static String DEFAULT_LOGGER_CATEGORY = cast.interfaces.LoggingServer.class
-	.getCanonicalName();
-
+	final static String DEFAULT_LOGGER_NAME = "CASTLogServer";
+	final static String DEFAULT_LOGGER_CATEGORY = "LoggingServer";
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -21,6 +19,7 @@ public class LoggingServer extends LoggingApplication {
 	@Override
 	public int run(String[] args) {
 
+		
 		Communicator ic = communicator();
 		ObjectAdapter adapter = ic.createObjectAdapterWithEndpoints(
 				"LoggingServer", "default -p " + LoggingServer.DEFAULT_LOGGER_PORT);

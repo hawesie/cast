@@ -18,6 +18,11 @@ public class CASTLoggingEvent extends LoggingEvent {
 		m_additions = _addy;
 	}
 
+	public CASTLoggingEvent(LoggingEvent _le, LogAdditions _logAdditions) {
+		super(_le.getFQNOfLoggerClass(),_le.getLogger(), _le.getTimeStamp(), _le.getLevel(), _le.getMessage(), _le.getThreadName(), _le.getThrowableInformation(), _le.getNDC(), _le.getLocationInformation(), _le.getProperties());
+		m_additions = _logAdditions;
+	}
+
 	public LogAdditions getAdditions() {
 		return m_additions;
 	}

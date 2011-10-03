@@ -69,7 +69,6 @@ public class IceAppender extends AppenderSkeleton {
 	 */
 	@Override
 	public boolean requiresLayout() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -85,19 +84,25 @@ public class IceAppender extends AppenderSkeleton {
 		// LogLog.debug("message: " + _event.getMessage());
 
 		try {
-			
+
 			// TODO check efficiency concerns about doing this
 			// every time
 
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(os);
-			
+
+			// this block copied from SocketAppender so I guess it might do
+			// something important...
+			_event.getNDC();
+			_event.getThreadName();
+			_event.getMDCCopy();
+			_event.getRenderedMessage();
+			_event.getThrowableStrRep();
+
 			oos.writeObject(_event);
 			oos.flush();
 			m_logServer.logSerialisedEvent(os.toByteArray());
 
-			
-			
 		} catch (IOException e) {
 			LogLog.error("can't create output event data", e);
 		}
