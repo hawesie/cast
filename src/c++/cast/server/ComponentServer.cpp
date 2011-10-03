@@ -17,6 +17,10 @@
 #include <log4cxx/helpers/properties.h>
 #include <log4cxx/stream.h>
 
+#ifdef GOOGLE_PROFILER
+#include <google/profiler.h>
+#endif 
+
 using namespace Ice;
 using namespace std;
 using namespace log4cxx;
@@ -31,11 +35,18 @@ namespace cast {
 
 
   class ComponentServer : virtual public Ice::Application { 
+  private:
+    bool isProfiling;
   public: 
 
-
+#ifdef GOOGLE_PROFILER
+    virtual void interruptCallback(int i) {
+      if (isProfiling)
+        ProfilerStop();
+      communicator()->destroy();
+    }
+#endif
     virtual int run(int _argc, char* _argv[]) { 
-
       //
       cast::core::logging::initLogging();
 
@@ -47,6 +58,21 @@ namespace cast {
       //log4cxx::logstream logstream(logger, Level::getInfo());
       //logstream<<"CPP server version: \""<<cdl::CASTRELEASESTRING<<"\""<<LOG4CXX_ENDMSG;
      
+#ifdef GOOGLE_PROFILER
+      char* profileFName=getenv("CAST_PROFILER");
+      if (profileFName!=NULL) {
+        ProfilerStart(profileFName);
+		isProfiling=true;
+        callbackOnInterrupt();
+        CAST_INFO(logger, "profiling enabled. profile file to be written: \""<<profileFName<<"\"", LogAdditions("cast.server.c++.ComponentServer","","")); 
+      } else {
+        isProfiling = false;
+        CAST_INFO(logger, "profiling disabled. set env variable 'CAST_PROFILER=filename.prof' to enable it.", LogAdditions("cast.server.c++.ComponentServer","","")); 
+      }
+#else
+      isProfiling = false;
+      CAST_INFO(logger, "profiling disabled at compile time. recompile CAST with GOOGLE_PROFILER turned on.", LogAdditions("cast.server.c++.ComponentServer","","")); 
+#endif
 
       CommunicatorPtr ic = communicator();
       
@@ -71,9 +97,18 @@ namespace cast {
       
       
       adapter->activate();
-      
+#ifdef GOOGLE_PROFILER
+      if (isProfiling) {
+        while(!ic->isShutdown()) {
+		ProfilerFlush();
+	  sleep(5);
+        }
+      } else {
+        ic->waitForShutdown();
+      }
+#else
       ic->waitForShutdown();
-      
+#endif
       return 0; 
     }
 

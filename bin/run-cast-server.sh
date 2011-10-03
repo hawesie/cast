@@ -63,7 +63,7 @@ echo Python server pid: ${PY_SERVER_JOB}
 
 
 # if we're killed, take down everyone else with us
-trap "kill -9 ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB}" INT TERM EXIT
+trap "kill ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB}; sleep 2; kill -q -9 ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB} 2>/dev/null" INT TERM EXIT
 
 wait
 
