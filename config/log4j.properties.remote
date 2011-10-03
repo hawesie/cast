@@ -1,0 +1,7 @@
+# generate all loggers using the CAST logger factory
+log4j.loggerFactory=cast.core.logging.ComponentLoggerFactory
+
+# Set root logger level to TRACE, so all output is sent to remote Ice logger
+log4j.rootLogger=TRACE,ice
+log4j.appender.ice=cast.core.logging.IceAppender
+
