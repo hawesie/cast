@@ -15,6 +15,10 @@ set(headers CASTUtils.hpp ComponentLogger.hpp
 add_library(CASTCore SHARED ${sources} ${headers})
 
 target_link_libraries(CASTCore CDL)
+if(GOOGLE_PROFILER)
+add_definitions(-DGOOGLE_PROFILER)
+target_link_libraries(CASTCore profiler)
+endif(GOOGLE_PROFILER)
 
 install(TARGETS CASTCore LIBRARY DESTINATION lib/cast ARCHIVE DESTINATION lib/cast)
 install(FILES ${headers} DESTINATION include/cast/core)

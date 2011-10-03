@@ -13,7 +13,7 @@ module cast
     const int CPPSERVERPORT = 10211;
     const int JAVACLIENTSERVERPORT = 10311;
     const int PYTHONSERVERPORT = 10411;
-	const int LOGGINGPORT = 10511;
+	const int LOGGINGPORT = 10611;
 
  
     const string SUBARCHIDKEY = "org.cognitivesystem.cast.subarchID"; 
