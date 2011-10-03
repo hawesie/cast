@@ -5,3 +5,6 @@ log4j.loggerFactory=cast.core.logging.ComponentLoggerFactory
 log4j.rootLogger=TRACE,ice
 log4j.appender.ice=cast.core.logging.IceAppender
 
+# Set location of logging server. These are the default values.
+# log4j.appender.ice.Host=localhost
+# log4j.appender.ice.Port=10511
