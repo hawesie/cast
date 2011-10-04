@@ -632,10 +632,24 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 	 */
 	public ComponentLogger getLogger() {
 		if (m_logger == null) {
-			m_logger = ComponentLogger.getLogger(getLoggerName());
-			if (m_logLevel != null) {
-				m_logger.setLevel(m_logLevel);
-				// println("log level set to" + m_logLevel);
+			try {
+				m_logger = ComponentLogger.getLogger(getLoggerName());
+			}
+			catch (ClassCastException e)
+			{
+				m_logger = null;
+			}
+			if (m_logger != null) {
+				if (m_logLevel != null) {
+					m_logger.setLevel(m_logLevel);
+					// println("log level set to" + m_logLevel);
+				}
+			}
+			else {
+				m_logger = getLogger(".main");
+			}
+			if (m_logger == null) {
+				System.out.println("**** LOGGER '" + getLoggerName() + "' CREATION FAILED ****");
 			}
 		}
 		return m_logger;
