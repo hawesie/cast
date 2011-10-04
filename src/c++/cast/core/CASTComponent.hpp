@@ -345,9 +345,18 @@ namespace cast {
     virtual ComponentLoggerPtr getLogger() {
       if (m_logger == NULL) {
 	m_logger = core::logging::ComponentLogger::getLogger(getLoggerName());
-	if (m_logLevel != NULL) {
-	  m_logger->setLevel(m_logLevel);
+	if (m_logger) {
+	  if (m_logLevel != NULL) {
+	    m_logger->setLevel(m_logLevel);
+	  }
 	}
+	else {
+	  m_logger = getLogger(".main");
+	}
+	if (! m_logger) {
+	  printf("**** LOGGER '%s' CREATION FAILED ****\n", getLoggerName().c_str());
+	}
+
       }
       return m_logger;
     }

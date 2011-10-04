@@ -237,6 +237,8 @@ namespace cast {
 
 
   void CASTComponent::println(const char *format, ...) const {
+    if (! m_logger) return;
+
     char msg[1024];
     va_list arg_list;
     va_start(arg_list, format);
@@ -252,6 +254,8 @@ namespace cast {
 
 
   void CASTComponent::error(const char *format, ...) const {
+    if (! m_logger) return;
+
     char msg[1024];
     va_list arg_list;
     va_start(arg_list, format);
@@ -269,7 +273,7 @@ namespace cast {
 
   void CASTComponent::log(const char *format, ...) const {
     
-    if(m_logger->isDebugEnabled()) {
+    if(m_logger && m_logger->isDebugEnabled()) {
       char msg[1024];
       va_list arg_list;
       va_start(arg_list, format);
@@ -288,7 +292,7 @@ namespace cast {
 
 
   void CASTComponent::debug(const char * format, ...) const {
-    if(m_logger->isTraceEnabled()) {
+    if(m_logger && m_logger->isTraceEnabled()) {
       char msg[1024];
       va_list arg_list;
       va_start(arg_list, format);

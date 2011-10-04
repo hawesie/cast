@@ -20,9 +20,8 @@ public class CASTLogServer extends _LoggingServerDisp {
 	@Override
 	public void logMessage(String message, Current __current) {
 		System.out.println("message: " + message);
-
 	}
-
+	
 	@Override
 	public void logSerialisedEvent(byte[] event, Current __current) {
 		try {
