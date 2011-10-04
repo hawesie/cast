@@ -19,7 +19,9 @@ public class CASTLoggingEvent extends LoggingEvent {
 	}
 
 	public CASTLoggingEvent(LoggingEvent _le, LogAdditions _logAdditions) {
-		super(_le.getFQNOfLoggerClass(),_le.getLogger(), _le.getTimeStamp(), _le.getLevel(), _le.getMessage(), _le.getThreadName(), _le.getThrowableInformation(), _le.getNDC(), _le.getLocationInformation(), _le.getProperties());
+		//the commented out line leaves the logger name as null
+		//		super(_le.getFQNOfLoggerClass(),_le.getLogger(), _le.getTimeStamp(), _le.getLevel(), _le.getMessage(), _le.getThreadName(), _le.getThrowableInformation(), _le.getNDC(), _le.getLocationInformation(), _le.getProperties());
+		super(_le.getFQNOfLoggerClass(),ComponentLogger.getLogger(_le.getLoggerName()), _le.getTimeStamp(), _le.getLevel(), _le.getMessage(), _le.getThreadName(), _le.getThrowableInformation(), _le.getNDC(), _le.getLocationInformation(), _le.getProperties());
 		m_additions = _logAdditions;
 	}
 
@@ -27,4 +29,6 @@ public class CASTLoggingEvent extends LoggingEvent {
 		return m_additions;
 	}
 
+	
+	
 }
