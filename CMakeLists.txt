@@ -5,6 +5,8 @@ set(CMAKE_INSTALL_PREFIX /usr/local CACHE STRING "Prefix prepended to install di
 
 project (CAST)
 
+add_custom_target (clean-all)
+
 # get current dir
 get_filename_component(CAST_ROOT . ABSOLUTE)
 
@@ -26,4 +28,4 @@ add_subdirectory (cmake)
 add_subdirectory (config)
 add_subdirectory (bin)
 
-
+add_subdirectory (3dparty)
