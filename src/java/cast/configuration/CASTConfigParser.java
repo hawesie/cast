@@ -152,6 +152,12 @@ public class CASTConfigParser {
 
 	private static final String PYTHON_FLAG = "PYTHON";
 
+	private static final String PREPROC_IFTRUE = "IFTRUE";
+	private static final String PREPROC_TRUEVALUES = ".true.yes.on.1.2.3.4.5.6.7.8.9.";
+
+	private static final String PREPROC_IFFALSE = "IFFALSE";
+	private static final String PREPROC_FALSEVALUES = ".false.no.off.0.."; // last is empty string
+
 	private static final String PREPROC_IFEQ = "IFEQ";
 
 	private static final String PREPROC_IFNOTEQ = "IFNEQ";
@@ -389,6 +395,7 @@ public class CASTConfigParser {
 	 */
 	private static boolean isPreproc(String line) {
 		return line.startsWith(PREPROC_IFEQ) || line.startsWith(PREPROC_IFNOTEQ)
+			|| (line.startsWith(PREPROC_IFTRUE) || line.startsWith(PREPROC_IFFALSE))
 			|| (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF));
 	}
 
@@ -1102,6 +1109,24 @@ public class CASTConfigParser {
 	}
 
 	// @author: mmarko
+	private static boolean evalPreprocBoolean(String line) throws PreprocException {
+		int p1 = line.indexOf("(");
+		int p2 = line.lastIndexOf(")");
+		if (p1 < 0 || p2 < 0) {
+			throw new PreprocException("Missing parentheses in: " + line);
+		}
+		String value = line.substring(p1 + 1, p2);
+		String pa = replaceVars(value).toLowerCase();
+		pa = pa.trim(); // TODO: also strip quotes!
+		pa = "." + pa + ".";
+		if (PREPROC_TRUEVALUES.indexOf(pa) >= 0)
+			return true;
+		if (PREPROC_FALSEVALUES.indexOf(pa) >= 0)
+			return false;
+		throw new PreprocException("Invalid boolean value '" + replaceVars(value) + "' in: " + line);
+	}
+
+	// @author: mmarko
 	private static void parsePreprocLine(String line, PreprocStack stack) throws PreprocException {
 		if (line.startsWith(PREPROC_ENDIF)) {
 			stack.popBlock();
@@ -1115,6 +1140,14 @@ public class CASTConfigParser {
 		}
 		else if (line.startsWith(PREPROC_IFNOTEQ)) {
 			boolean eval = evalPreprocCompare(line);
+			stack.pushBlock(line, !eval);
+		}
+		else if (line.startsWith(PREPROC_IFTRUE)) {
+			boolean eval = evalPreprocBoolean(line);
+			stack.pushBlock(line, eval);
+		}
+		else if (line.startsWith(PREPROC_IFFALSE)) {
+			boolean eval = evalPreprocBoolean(line);
 			stack.pushBlock(line, !eval);
 		}
 	}

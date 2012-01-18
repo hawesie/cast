@@ -1,7 +1,7 @@
 # CAST Configuration File
 # Test for the configuration parser.
 # The comments that start with #EXPAND will undergo variable expansion.
-# Run: cast-client test-parser.cast  --debug-parser --parse-only 
+# Run: cast-client ./test-parser.cast  --debug-parser --parse-only 
 #   --debug-parser: every line will be printed after processing
 #   --parse-only: no components will be created
 
@@ -73,3 +73,31 @@ ELSE
     ENDIF
 ENDIF
 
+# TEST the boolean value evaluator
+SETVAR test=yes
+INCLUDE test-parser-booltest.incl
+SETVAR test=no
+INCLUDE test-parser-booltest.incl
+SETVAR test=YES
+INCLUDE test-parser-booltest.incl
+SETVAR test=NO
+INCLUDE test-parser-booltest.incl
+SETVAR test=true
+INCLUDE test-parser-booltest.incl
+SETVAR test=false
+INCLUDE test-parser-booltest.incl
+SETVAR test=on
+INCLUDE test-parser-booltest.incl
+SETVAR test=off
+INCLUDE test-parser-booltest.incl
+SETVAR test=
+INCLUDE test-parser-booltest.incl
+SETVAR test=0
+INCLUDE test-parser-booltest.incl
+SETVAR test=1
+INCLUDE test-parser-booltest.incl
+SETVAR test=9
+INCLUDE test-parser-booltest.incl
+#Only single digits are accepted
+#SETVAR test=10
+#INCLUDE test-parser-booltest.incl
