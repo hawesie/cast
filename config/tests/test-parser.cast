@@ -1,0 +1,75 @@
+# CAST Configuration File
+# Test for the configuration parser.
+# The comments that start with #EXPAND will undergo variable expansion.
+# Run: cast-client test-parser.cast  --debug-parser --parse-only 
+#   --debug-parser: every line will be printed after processing
+#   --parse-only: no components will be created
+
+HOSTNAME    Main            localhost
+HOSTNAME    PlayerHost      [Main]
+HOSTNAME    DisplayHost     [Main]
+
+#EXPAND "%(host:DisplayHost)"=="localhost"
+
+HOST [Main]
+
+SETVAR config=one
+VARDEFAULT config=thewrongone
+
+#EXPAND "%(config)"=="one"
+
+# The lines that should be skipped are prefixed with DISABLED.
+IFEQ(%(config), one)
+    SETVAR valid=Valid Was Set
+    SUBARCHITECTURE spatial.sa
+    JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    CPP TM AlwaysPositiveTaskManager
+ELSE
+    DISABLED SUBARCHITECTURE spatial.sa
+    DISABLED JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    DISABLED CPP TM AlwaysPositiveTaskManager
+ENDIF
+#EXPAND "%(valid)"=="Valid Was Set", should be equal
+
+IFEQ("%(config)", "one")
+    SETVAR valid=Valid Was Set Again
+ENDIF
+#EXPAND "%(valid)"=="Valid Was Set Again", should be equal
+
+IFEQ(%(config), two)
+    SETVAR invalid=Invalid Was Set
+    DISABLED SUBARCHITECTURE spatial.sa
+    DISABLED JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    DISABLED CPP TM AlwaysPositiveTaskManager
+ELSE
+    SUBARCHITECTURE spatial.sa
+    JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    CPP TM AlwaysPositiveTaskManager
+ENDIF
+#EXPAND "%(invalid)"!="Invalid Was Set", the first string should be the variable name
+
+
+SETVAR version=1
+# Nested IFEQs
+IFEQ(%(config), one)
+    CPP TM AlwaysPositiveTaskManager
+    IFEQ(%(version), 1)
+        CPP TM AlwaysPositiveTaskManager
+    ENDIF
+    IFNEQ(%(version), 1)
+        DISABLED CPP TM AlwaysPositiveTaskManager
+    ELSE
+        JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    ENDIF
+ELSE
+    DISABLED CPP TM AlwaysPositiveTaskManager
+    IFEQ(%(version), 1)
+        DISABLED CPP TM AlwaysPositiveTaskManager
+    ENDIF
+    IFNEQ(%(version), 1)
+        DISABLED CPP TM AlwaysPositiveTaskManager
+    ELSE
+        DISABLED JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    ENDIF
+ENDIF
+

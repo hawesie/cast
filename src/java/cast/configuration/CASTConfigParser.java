@@ -45,6 +45,7 @@ import cast.cdl.CONFIGFILEKEY;
 import cast.cdl.ComponentDescription;
 import cast.cdl.ComponentLanguage;
 import cast.cdl.WMIDSKEY;
+import cast.CASTException;
 
 /**
  * An object that builds an architecture configuration from a config file.
@@ -52,6 +53,77 @@ import cast.cdl.WMIDSKEY;
  * @author nah
  */
 public class CASTConfigParser {
+
+	public static class PreprocException extends CASTException {
+		private static final long serialVersionUID = -2539112153883115654L;
+		public PreprocException(String _message) {
+			super(_message);
+		}
+	}
+
+	// @author: mmarko
+	private static class PreprocStackItem {
+		String m_startLine;
+		boolean m_trueblock; // true if currently reading the block to be included
+		boolean m_elsefound; // true if ELSE was encountered
+		boolean m_skiptoend; // unused; true it the rest of the statement should be skipped
+		PreprocStackItem(String startLine, boolean trueblock) {
+			m_startLine = startLine;
+			m_trueblock = trueblock;
+			m_elsefound = false;
+			m_skiptoend = false; // to be used with ELIFEQ, ELIFNEQ
+		}
+	}
+
+	// @author: mmarko
+	private static class PreprocStack {
+		private ArrayList<PreprocStackItem> m_items = new ArrayList<PreprocStackItem>();
+
+		boolean isEmpty() {
+			return m_items.isEmpty();
+		}
+		boolean isBlockEnabled() {
+			for (PreprocStackItem si : m_items) {
+				if (! si.m_trueblock) {
+					return false;
+				}
+			}
+			return true;
+		}
+		void pushBlock(String line, boolean active) {
+			m_items.add(new PreprocStackItem(line, active));
+		}
+		void popBlock() throws PreprocException {
+			if (m_items.size() < 1) {
+				throw new PreprocException(PREPROC_ENDIF + " statement witouth an IF* statement.");
+			}
+			m_items.remove(m_items.size() - 1);
+		}
+		void elseBlock() throws PreprocException {
+			if (m_items.size() < 1) {
+				throw new PreprocException(PREPROC_ELSE + " statement witouth an IF* statement.");
+			}
+			PreprocStackItem si = m_items.get(m_items.size() - 1);
+			if (si.m_elsefound) {
+				throw new PreprocException("Duplicate " + PREPROC_ELSE + " statement. Stack:\n****\n"
+						+ dump() + "\n****\n");
+			}
+			si.m_trueblock = !si.m_trueblock; // && !si.m_skiptoend
+			si.m_elsefound = true;
+		}
+		String dump() {
+			String res = "";
+			for (PreprocStackItem si : m_items) {
+				if (res.length() == 0) {
+					res = res + si.m_startLine;
+				}
+				else {
+					res = res + "\n" + si.m_startLine;
+				}
+			}
+			return res;
+		}
+	}
 
 	/**
 	 * 
@@ -79,6 +151,14 @@ public class CASTConfigParser {
 	private static final String JAVA_FLAG = "JAVA";
 
 	private static final String PYTHON_FLAG = "PYTHON";
+
+	private static final String PREPROC_IFEQ = "IFEQ";
+
+	private static final String PREPROC_IFNOTEQ = "IFNEQ";
+
+	private static final String PREPROC_ELSE = "ELSE";
+
+	private static final String PREPROC_ENDIF = "ENDIF";
 
 	private static ArchitectureConfiguration m_architecture;
 
@@ -129,6 +209,10 @@ public class CASTConfigParser {
 	private static String m_currentFile;
 
 	public static boolean m_bPrintHostInfo = false;
+
+	public static boolean m_bDebug = false; // Prints every line in expandVars
+
+	public static boolean m_bParseOnly = false; // Terminates after expandVars
 
 	//
 	// /**
@@ -297,6 +381,15 @@ public class CASTConfigParser {
 		m_extraConnectionCount = 0;
 		m_extraDescriptions = new ArrayList<ComponentDescription>();
 		m_componentNumber = 0;
+	}
+
+	/**
+	 * @param line
+	 * @return
+	 */
+	private static boolean isPreproc(String line) {
+		return line.startsWith(PREPROC_IFEQ) || line.startsWith(PREPROC_IFNOTEQ)
+			|| (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF));
 	}
 
 	/**
@@ -990,16 +1083,75 @@ public class CASTConfigParser {
 		return value;
 	}
 
-	private static void expandVars(ArrayList<String> _lines) {
+	// @author: mmarko
+	private static boolean evalPreprocCompare(String line) throws PreprocException {
+		int p1 = line.indexOf("(");
+		int p2 = line.lastIndexOf(")");
+		if (p1 < 0 || p2 < 0) {
+			throw new PreprocException("Missing parentheses in: " + line);
+		}
+		line = line.substring(p1 + 1, p2);
+		String[] parts = line.split(",", 2);
+		if (parts.length < 2) {
+			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
+		}
+		String pa = replaceVars(parts[0].trim());
+		String pb = replaceVars(parts[1].trim());
+
+		return pa.compareTo(pb) == 0;
+	}
+
+	// @author: mmarko
+	private static void parsePreprocLine(String line, PreprocStack stack) throws PreprocException {
+		if (line.startsWith(PREPROC_ENDIF)) {
+			stack.popBlock();
+		}
+		else if (line.startsWith(PREPROC_ELSE)) {
+			stack.elseBlock();
+		}
+		else if (line.startsWith(PREPROC_IFEQ)) {
+			boolean eval = evalPreprocCompare(line);
+			stack.pushBlock(line, eval);
+		}
+		else if (line.startsWith(PREPROC_IFNOTEQ)) {
+			boolean eval = evalPreprocCompare(line);
+			stack.pushBlock(line, !eval);
+		}
+	}
+
+	// @author: mmarko
+	private static void expandVars(ArrayList<String> _lines) throws PreprocException {
 		ArrayList<String> orgLines = new ArrayList<String>(_lines);
 		_lines.clear();
 		boolean headerFound = false;
+		boolean blockEnabled = true;
+		PreprocStack stack = new PreprocStack();
 
 		for (int i = 0; i < orgLines.size(); i++) {
 			String line = (String) orgLines.get(i);
+			if (m_bDebug && _lines.size() > 0) {
+				System.out.println(_lines.get(_lines.size() - 1));
+			}
 
+			line = line.trim();
 			if (line.startsWith(COMMENT_CHAR)) {
-				_lines.add(line);
+				if (m_bDebug && line.startsWith(COMMENT_CHAR + "EXPAND")) {
+					_lines.add(replaceVars(line));
+				}
+				else {
+					_lines.add(line);
+				}
+				continue;
+			}
+			else if (isPreproc(line)) {
+				parsePreprocLine(line, stack);
+				blockEnabled = stack.isBlockEnabled();
+				_lines.add(COMMENT_CHAR + line);
+				continue;
+			}
+
+			if (! blockEnabled) {
+				_lines.add(COMMENT_CHAR + " -- " + line);
 			}
 			else if (isHeader(line)) {
 				headerFound = true;
@@ -1008,20 +1160,27 @@ public class CASTConfigParser {
 			else {
 				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)) {
 					i = parseSetvarLine(orgLines, i);
+					_lines.add(COMMENT_CHAR + line);
 				}
 				else if (line.startsWith(CMD_SETHOST)) {
 					if (headerFound) {
 						System.err.println(ERROR_LABEL + CMD_SETHOST +
-							   	" directives must preceede any other directives"
+								" directives must preceede any other directives"
 								+ " except " + CMD_VARSET + " and " + CMD_VARDEFAULT + ".");
 					}
 					else
 					   	i = parseSethostLine(orgLines, i);
+
+					_lines.add(COMMENT_CHAR + line);
 				}
 				else {
 					_lines.add(replaceVars(line));
 				}
 			}
+		}
+		if (! stack.isEmpty()) {
+			throw new PreprocException("Unterminated conditional statements found:\n****\n"
+				   	+ stack.dump() + "\n****\n");
 		}
 	}
 
@@ -1398,6 +1557,10 @@ public class CASTConfigParser {
 			if (!configDir.equals(m_configVars.get(VAR_CONFIG_DIR)))
 			  System.out.println("!!! " + VAR_CONFIG_DIR + "=" + m_configVars.get(VAR_CONFIG_DIR));
 
+			if (m_bParseOnly) {
+				return;
+			}
+
 			// setup container to hold everything
 			m_architecture = new ArchitectureConfiguration();
 			processLines(lines);
@@ -1406,6 +1569,9 @@ public class CASTConfigParser {
 			throw new ArchitectureConfigurationException(
 					"Config file, or included file, does not exist: " + _filename, e);
 		} catch (IOException e) {
+			throw new ArchitectureConfigurationException(
+					"Error parsing config file: " + _filename, e);
+		} catch (PreprocException e) {
 			throw new ArchitectureConfigurationException(
 					"Error parsing config file: " + _filename, e);
 		}
@@ -1422,6 +1588,9 @@ public class CASTConfigParser {
 			expandVars(lines);
 			return processLines(lines);
 		} catch (IOException e) {
+			throw new ArchitectureConfigurationException(
+					"Error parsing config file: " + _config, e);
+		} catch (PreprocException e) {
 			throw new ArchitectureConfigurationException(
 					"Error parsing config file: " + _config, e);
 		}

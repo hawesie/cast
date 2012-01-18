@@ -19,14 +19,14 @@ set(client_script run-cast-client.sh)
 add_custom_target(${client_exe} ALL
 		   COMMAND echo "#!/bin/bash" > ${client_exe} 
 	           COMMAND echo "# Auto-generated CAST client script" >> ${client_exe} 
-		   COMMAND echo "if [ $# -ne 1 ] ; then" >> ${client_exe}
+		   COMMAND echo "if [ $# -lt 1 ] ; then" >> ${client_exe}
 		   # cmake is borken for the below
 		   # COMMAND echo "   echo "Usage: `basename \$0` <cast file>" " >> ${client_exe}
-		   COMMAND echo "   echo 'Usage: ${client_exe} <cast file>" ' >> ${client_exe}
+		   COMMAND echo "   echo 'Usage: ${client_exe} <cast file> [options]" ' >> ${client_exe}
 		   COMMAND echo "   exit \$E_BADARGS" >> ${client_exe}	 
 		   COMMAND echo "fi" >> ${client_exe}
 		   COMMAND echo "" >> ${client_exe}
-		   COMMAND echo "${CMAKE_INSTALL_PREFIX}/bin/${client_script} ${CMAKE_INSTALL_PREFIX} \$1" >> ${client_exe} 
+		   COMMAND echo "${CMAKE_INSTALL_PREFIX}/bin/${client_script} ${CMAKE_INSTALL_PREFIX} \$*" >> ${client_exe} 
 		   COMMENT "generating client script"
 		   WORKING_DIRECTORY ${CAST_ROOT}/bin
 		   VERBATIM)

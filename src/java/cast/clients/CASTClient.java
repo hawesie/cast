@@ -54,8 +54,10 @@ public class CASTClient extends LoggingApplication {
 	 * 
 	 */
 	private static void showArgs() {
-		System.err
-				.println("CASTProcessServer arguments: -f config file REQUIRED");
+		System.err.println("CASTProcessServer arguments: -f <config file REQUIRED> [other-options]");
+		System.err.println("Other options:");
+		System.err.println("  --debug-parser: every config line will be printed after processing");
+		System.err.println("  --parse-only: no components will be created");
 	}
 
 	private ArrayList<CASTComponentPrx> m_components;
@@ -71,8 +73,15 @@ public class CASTClient extends LoggingApplication {
 
 		try {
 			for (int i = 0; i < args.length; i++) {
+				System.out.println(args[i]);
 				if (args[i].equals("-f")) {
 					configFile = args[i + 1];
+				}
+				else if (args[i].equals("--debug-parser")) {
+					CASTConfigParser.m_bDebug = true;
+				}
+				else if (args[i].equals("--parse-only")) {
+					CASTConfigParser.m_bParseOnly = true;
 				}
 			}
 		} catch (ArrayIndexOutOfBoundsException e) {
