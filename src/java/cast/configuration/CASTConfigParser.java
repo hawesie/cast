@@ -584,7 +584,9 @@ public class CASTConfigParser {
 				// we have a value
 
 				// if it's a string
-				if (token.startsWith("\"") && (!token.endsWith("\""))) {
+				if (token.compareTo("\"") == 0 ||
+					token.startsWith("\"") && (!token.endsWith("\"")))
+				{
 					// collect bits of string into one
 					value = token;
 					while (_tokeniser.hasMoreTokens()) {
