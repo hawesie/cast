@@ -111,6 +111,13 @@ public class CASTConfigParser {
 			si.m_trueblock = !si.m_trueblock; // && !si.m_skiptoend
 			si.m_elsefound = true;
 		}
+		String topStartLine() {
+			if (m_items.size() < 1) {
+				return "''";
+			}
+			PreprocStackItem si = m_items.get(m_items.size() - 1);
+			return si.m_startLine;
+		}
 		String dump() {
 			String res = "";
 			for (PreprocStackItem si : m_items) {
@@ -1262,9 +1269,13 @@ public class CASTConfigParser {
 				continue;
 			}
 			else if (isPreproc(line)) {
+				String extra = "";
+				if (m_bDebug && (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF))) {
+					extra = " <-- " + stack.topStartLine();
+				}
 				parsePreprocLine(line, stack);
 				blockEnabled = stack.isBlockEnabled();
-				_lines.add(COMMENT_CHAR + line);
+				_lines.add(COMMENT_CHAR + line + extra);
 				continue;
 			}
 
