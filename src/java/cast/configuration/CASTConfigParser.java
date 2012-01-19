@@ -1000,7 +1000,7 @@ public class CASTConfigParser {
 			}
 		}
 
-		value = replaceVars(value);
+		value = replaceAllVars(value);
 		//System.out.println(token + " ... Value ... " + value);
 		m_configVars.put(token, value);
 
@@ -1030,7 +1030,15 @@ public class CASTConfigParser {
 		return i;
 	}
 
-	private static String replaceVars(String line) {
+	private static String replaceExistingVars(String line) {
+		return _replaceVars(line, true);
+	}
+
+	private static String replaceAllVars(String line) {
+		return _replaceVars(line, false);
+	}
+
+	private static String _replaceVars(String line, boolean bKeepMissingVars) {
 		int pos = line.indexOf("%(");
 		if (pos < 0) {
 			return line;
@@ -1048,12 +1056,17 @@ public class CASTConfigParser {
 				res = res + line.substring(lastpos, pos) + value;
 			}
 			else if (m_configVars.containsKey(token)) {
-			  String value = m_configVars.get(token);
+				String value = m_configVars.get(token);
 				res = res + line.substring(lastpos, pos) + value;
 			}
 			else {
 				System.err.println(WARNING_LABEL + "Variable %(" + token + ") not defined.");
-				res = res + line.substring(lastpos, end+1);
+				if (bKeepMissingVars) {
+					res = res + line.substring(lastpos, end+1);
+				}
+				else {
+					res = res + line.substring(lastpos, pos);
+				}
 			}
 			lastpos = end + 1;
 			pos = line.indexOf("%(", end+1);
@@ -1125,8 +1138,8 @@ public class CASTConfigParser {
 		if (parts.length < 2) {
 			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
 		}
-		String pa = replaceVars(parts[0].trim());
-		String pb = replaceVars(parts[1].trim());
+		String pa = replaceAllVars(parts[0].trim());
+		String pb = replaceAllVars(parts[1].trim());
 
 		return pa.compareTo(pb) == 0;
 	}
@@ -1134,7 +1147,7 @@ public class CASTConfigParser {
 	// @author: mmarko
 	private static boolean evalPreprocBoolean(String line) throws PreprocException {
 		String value = extractPreprocParams(line);
-		String pa = replaceVars(value).toLowerCase();
+		String pa = replaceAllVars(value).toLowerCase();
 		pa = pa.trim(); // TODO: also strip quotes!
 		pa = "." + pa + ".";
 		if (PREPROC_TRUEVALUES.indexOf(pa) >= 0) {
@@ -1143,7 +1156,7 @@ public class CASTConfigParser {
 		if (PREPROC_FALSEVALUES.indexOf(pa) >= 0) {
 			return false;
 		}
-		throw new PreprocException("Invalid boolean value '" + replaceVars(value) + "' in: " + line);
+		throw new PreprocException("Invalid boolean value '" + replaceAllVars(value) + "' in: " + line);
 	}
 
 	// @author: mmarko
@@ -1175,10 +1188,10 @@ public class CASTConfigParser {
 		if (parts.length < 2) {
 			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
 		}
-		String[] flagParts = replaceVars(parts[1]).split("[ \t]");
+		String[] flagParts = replaceAllVars(parts[1]).split("[ \t]");
 		if (flagParts.length < 1)
 			return true;
-		String[] valParts = replaceVars(parts[0]).split("[ \t]");
+		String[] valParts = replaceAllVars(parts[0]).split("[ \t]");
 		for (String flag : flagParts) {
 			String[] pflag = parseFlag(flag);
 			if (pflag == null) {
@@ -1268,7 +1281,7 @@ public class CASTConfigParser {
 			line = line.trim();
 			if (line.startsWith(COMMENT_CHAR)) {
 				if (m_bDebug && line.startsWith(COMMENT_CHAR + "EXPAND")) {
-					_lines.add(replaceVars(line));
+					_lines.add(replaceAllVars(line));
 				}
 				else {
 					_lines.add(line);
@@ -1291,7 +1304,7 @@ public class CASTConfigParser {
 			}
 			else if (isHeader(line)) {
 				headerFound = true;
-				_lines.add(replaceVars(line));
+				_lines.add(replaceExistingVars(line));
 			}
 			else {
 				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)) {
@@ -1310,7 +1323,7 @@ public class CASTConfigParser {
 					_lines.add(COMMENT_CHAR + line);
 				}
 				else {
-					_lines.add(replaceVars(line));
+					_lines.add(replaceExistingVars(line));
 				}
 			}
 		}
