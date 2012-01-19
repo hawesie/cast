@@ -441,18 +441,23 @@ public class CASTConfigParser {
 		m_architecture = parseArchitectureLine(archLine);
 
 		int i = 0;
-		for (i = _i + 1; i < _lines.size(); i++) {
-			line = _lines.get(i);
+		try {
+			for (i = _i + 1; i < _lines.size(); i++) {
+				line = _lines.get(i);
 
-			if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
-				// look for end of section
-				if (isHeader(line)) {
-					break;
-				} else {
-					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
-					parseArchitectureComponentLine(line, m_architecture);
+				if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
+					// look for end of section
+					if (isHeader(line)) {
+						break;
+					} else {
+						//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
+						parseArchitectureComponentLine(line, m_architecture);
+					}
 				}
 			}
+		}
+		catch (ArchitectureConfigurationException e) {
+			throw new ArchitectureConfigurationException(e.message + "\nTrace:\n" + getTrace(_lines, i));
 		}
 
 		// System.out.println("end arch parse-----------------------");
@@ -1361,6 +1366,44 @@ public class CASTConfigParser {
 	// _componentHost, config);
 	//
 	// }
+	
+	private static String getTrace(ArrayList<String> lines, int ibad) {
+		int ti = 9;
+		int mid = 5;
+		int i;
+		String[] trace = new String[ti+1];
+		trace[5] = "--> " + lines.get(ibad).trim();
+		ti = mid - 1;
+		i = ibad - 1;
+		while (i >= 0 && ti >= 0) {
+			String line = lines.get(i).trim();
+			i--;
+			if (line.length() < 1) {
+				continue;
+			}
+			trace[ti] = "-   " + line;
+			ti--;
+		}
+		ti = mid + 1;
+		i = ibad + 1;
+		while (i < lines.size() && ti < trace.length) {
+			String line = lines.get(i).trim();
+			i++;
+			if (line.length() < 1) {
+				continue;
+			}
+			trace[ti] = "-   " + line;
+			ti++;
+		}
+		String res = "";
+		for (String s : trace) {
+			if (s != null && s.length() > 0) {
+				if (res.length() == 0) res = res + s;
+				else res = res + "\n" + s;
+			}
+		}
+		return res;
+	}
 
 	/**
 	 * @param _lines
@@ -1380,19 +1423,25 @@ public class CASTConfigParser {
 		SubarchitectureConfiguration subarch = parseSubarchitectureLine(subarchLine);
 
 		int i = _i + 1;
-		for (i = _i + 1; i < _lines.size(); i++) {
-			line = _lines.get(i);
+		try {
+			for (i = _i + 1; i < _lines.size(); i++) {
+				line = _lines.get(i);
 
-			if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
-				// look for end of section
-				if (isHeader(line)) {
-					break;
-				} else {
-					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
-					parseSubarchitectureComponentLine(line, subarch);
+				if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
+					// look for end of section
+					if (isHeader(line)) {
+						break;
+					} else {
+						//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
+						parseSubarchitectureComponentLine(line, subarch);
+					}
 				}
 			}
 		}
+		catch (ArchitectureConfigurationException e) {
+			throw new ArchitectureConfigurationException(e.message + "\nTrace:\n" + getTrace(_lines, i));
+		}
+			
 		// System.out.println("end subarch
 		// parse-----------------------");
 
