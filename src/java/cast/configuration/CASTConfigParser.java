@@ -162,6 +162,10 @@ public class CASTConfigParser {
 
 	private static final String PREPROC_IFNOTEQ = "IFNEQ";
 
+	private static final String PREPROC_IFOPTANY = "IFOPTANY";
+
+	private static final String PREPROC_IFOPTALL = "IFOPTALL";
+
 	private static final String PREPROC_ELSE = "ELSE";
 
 	private static final String PREPROC_ENDIF = "ENDIF";
@@ -395,8 +399,9 @@ public class CASTConfigParser {
 	 */
 	private static boolean isPreproc(String line) {
 		return line.startsWith(PREPROC_IFEQ) || line.startsWith(PREPROC_IFNOTEQ)
-			|| (line.startsWith(PREPROC_IFTRUE) || line.startsWith(PREPROC_IFFALSE))
-			|| (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF));
+			|| line.startsWith(PREPROC_IFTRUE) || line.startsWith(PREPROC_IFFALSE)
+			|| line.startsWith(PREPROC_IFOPTANY) || line.startsWith(PREPROC_IFOPTALL)
+			|| line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF);
 	}
 
 	/**
@@ -1090,15 +1095,19 @@ public class CASTConfigParser {
 		return value;
 	}
 
-	// @author: mmarko
-	private static boolean evalPreprocCompare(String line) throws PreprocException {
+	private static String extractPreprocParams(String line) throws PreprocException {
 		int p1 = line.indexOf("(");
 		int p2 = line.lastIndexOf(")");
 		if (p1 < 0 || p2 < 0) {
 			throw new PreprocException("Missing parentheses in: " + line);
 		}
-		line = line.substring(p1 + 1, p2);
-		String[] parts = line.split(",", 2);
+		return line.substring(p1 + 1, p2).trim();
+	}
+
+	// @author: mmarko
+	private static boolean evalPreprocCompare(String line) throws PreprocException {
+		String value = extractPreprocParams(line);
+		String[] parts = value.split(",", 2);
 		if (parts.length < 2) {
 			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
 		}
@@ -1110,20 +1119,88 @@ public class CASTConfigParser {
 
 	// @author: mmarko
 	private static boolean evalPreprocBoolean(String line) throws PreprocException {
-		int p1 = line.indexOf("(");
-		int p2 = line.lastIndexOf(")");
-		if (p1 < 0 || p2 < 0) {
-			throw new PreprocException("Missing parentheses in: " + line);
-		}
-		String value = line.substring(p1 + 1, p2);
+		String value = extractPreprocParams(line);
 		String pa = replaceVars(value).toLowerCase();
 		pa = pa.trim(); // TODO: also strip quotes!
 		pa = "." + pa + ".";
-		if (PREPROC_TRUEVALUES.indexOf(pa) >= 0)
+		if (PREPROC_TRUEVALUES.indexOf(pa) >= 0) {
 			return true;
-		if (PREPROC_FALSEVALUES.indexOf(pa) >= 0)
+		}
+		if (PREPROC_FALSEVALUES.indexOf(pa) >= 0) {
 			return false;
+		}
 		throw new PreprocException("Invalid boolean value '" + replaceVars(value) + "' in: " + line);
+	}
+
+	// @author: mmarko
+	// @returns: ["flagname", "!"]; The second element is empty if the flag is not negated.
+	private static String[] parseFlag(String flag) {
+		boolean negflag = false;
+		int i = 0;
+		while(i < flag.length() && flag.charAt(i) == '!') {
+			negflag = !negflag;
+			i++;
+		}
+		if (i >= flag.length()) {
+			return null;
+		}
+		String[] res = new String[2];
+		res[0] = flag.substring(i);
+		res[1] = negflag ? "!" : "";
+		return res;
+	}
+
+	// @author: mmarko
+	// IFOPTANY(value, flag flag !flag) # true if any flag is in value
+	// IFOPTALL(value, flag flag !flag) # true if all flags are in value
+	// If a flag is not in value, !flag is true.
+	// Variable replacement is done in both parameters.
+	private static boolean evalPreprocOptions(String line, boolean all) throws PreprocException {
+		String value = extractPreprocParams(line);
+		String[] parts = value.split(",", 2);
+		if (parts.length < 2) {
+			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
+		}
+		String[] flagParts = replaceVars(parts[1]).split("[ \t]");
+		if (flagParts.length < 1)
+			return true;
+		String[] valParts = replaceVars(parts[0]).split("[ \t]");
+		for (String flag : flagParts) {
+			String[] pflag = parseFlag(flag);
+			if (pflag == null) {
+				continue;
+			}
+			boolean flagfound = false;
+			String[] pvf = null;
+			for (String vf : valParts) {
+				boolean negvf = false;
+				pvf = parseFlag(vf);
+				if (pvf == null) {
+					continue;
+				}
+				if (pvf[0].compareTo(pflag[0]) == 0) {
+					flagfound = true;
+					break;
+				}
+			}
+			if (! flagfound) {
+				pvf = new String[2];
+				pvf[0] = pflag[0];
+				pvf[1] = "!";
+			}
+			boolean flagmatched = (pvf[0].compareTo(pflag[0]) == 0) && (pvf[1].compareTo(pflag[1]) == 0);
+			if (! flagmatched && all) {
+				return false;
+			}
+			if (flagmatched && !all) {
+				return true;
+			}
+		}
+		// We get here if:
+		//   all==true and all matched --> return true
+		//   all==false and none matched --> return false
+		//   --> return all
+		return all;
 	}
 
 	// @author: mmarko
@@ -1149,6 +1226,14 @@ public class CASTConfigParser {
 		else if (line.startsWith(PREPROC_IFFALSE)) {
 			boolean eval = evalPreprocBoolean(line);
 			stack.pushBlock(line, !eval);
+		}
+		else if (line.startsWith(PREPROC_IFOPTANY)) {
+			boolean eval = evalPreprocOptions(line, false);
+			stack.pushBlock(line, eval);
+		}
+		else if (line.startsWith(PREPROC_IFOPTALL)) {
+			boolean eval = evalPreprocOptions(line, true);
+			stack.pushBlock(line, eval);
 		}
 	}
 

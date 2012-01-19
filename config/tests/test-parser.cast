@@ -101,3 +101,24 @@ INCLUDE test-parser-booltest.incl
 #Only single digits are accepted
 #SETVAR test=10
 #INCLUDE test-parser-booltest.incl
+
+
+# TEST the option evaluator
+SETVAR value=a b c
+SETVAR flags=a
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b c
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b c d
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b c !d
+INCLUDE test-parser-opttest.incl
+
+SETVAR value=a b !c
+SETVAR flags=a b c !d
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b !c !d
+INCLUDE test-parser-opttest.incl
+

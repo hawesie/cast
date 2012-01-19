@@ -1,0 +1,13 @@
+
+SETVAR result="NOT IFOPTANY(%(value), %(flags))"
+IFOPTANY(%(value), %(flags))
+	SETVAR result="%(value)" has a flag from "%(flags)"
+ENDIF
+#EXPAND result: %(result)
+
+SETVAR result="NOT IFOPTALL(%(value), %(flags))"
+IFOPTALL(%(value), %(flags))
+	SETVAR result="%(value)" has all flags from "%(flags)"
+ENDIF
+#EXPAND result: %(result)
+
