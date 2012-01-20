@@ -344,4 +344,94 @@ COMPONENT  [LaserHost] CPP laser.server LaserServerPlayer --player-host %(host:P
 COMPONENT  [PlayerHost] CPP robot.server RobotbaseServerPlayer --player-host %(host:PlayerHost)
 \endverbatim
 
+\section conditional_blocks Conditional Blocks
+(IFTRUE, IFFALSE, IFEQ, IFNEQ, IFOPTALL, IFOPTANY introduced in version 2.1.16b?)
+
+A conditional block adds other directives inside the block to the final
+configuration only if the condition of the conditional directive that starts
+the block is fulfilled.  Conditional directives accept one or two parameters
+split by a comma ','.  The variables in the parameters are expanded and the
+resulting parameter value is trimmed (leading and trailing whitespace is
+removed).  Finally the parameters are evaluated depending on the type of the
+conditional directive.
+
+A conditional block starts with a conditional directive (IFxxx) and is
+terminated by an ENDIF directive.  An optional ELSE directive may be present
+before the ENDIF directive.  Conditional blocks may be nested to an arbitrary
+depth.  Every directive must be on its own line.  Directives are not searched
+inside <code>&lt;multiline&gt;</code> blocks (see \ref config_variables
+"variables").
+
+\verbatim
+IFTRUE(yes)
+   IFEQ(%(value), 11)
+   ELSE
+   ENDIF
+ENDIF
+\endverbatim
+
+\subsection conditional_directives Conditional Directives
+
+\subsubsection IFTRUE, IFFALSE
+
+\verbatim
+IFTRUE(value)
+IFFALSE(value)
+\endverbatim
+
+<code>IFTRUE(value)</code> succeeds if the value is one of <code>true</code>,
+<code>yes</code>, <code>on</code>, or a digit <code>1</code> to
+<code>9</code>. It doesn't succeed if the value is one of
+<code>false</code>, <code>no</code>, <code>off</code>, <code>0</code> or
+empty. Any other value is invalid.
+
+<code>IFFALSE(value)</code> succeeds when value is valid and
+<code>IFTRUE(value)</code> doesn't succeed.
+
+
+\subsubsection IFEQ, IFNEQ
+
+\verbatim
+IFEQ(value1, value2)
+IFNEQ(value1, value2)
+\endverbatim
+
+<code>IFEQ(value1, value2)</code> succeeds when then values are equal strings.
+<code>IFNEQ(value1, value2)</code> succeds when the values are different
+strings.
+
+\subsubsection IFOPTALL, IFOPTANY
+
+\verbatim
+IFOPTALL(value, opt_flags)
+IFOPTANY(value, opt_flags)
+\endverbatim
+
+The parameters <code>value</code> and <code>opt_flags</code> are each treated
+as a whitespace delimited list.  Each item in a list represents a flag that can
+be either set (<code>flag</code>) or unset (<code>!flag</code>). If a flag is
+not in a list it is considered unset.
+
+<code>IFOPTALL(value, opt_flags)</code> succeeds if ALL flags from
+<code>opt_flags</code> have the same state (set/unset) in value.
+
+\verbatim
+SETVAR value=a b
+IFOPTALL(%(value), a)       --> true
+IFOPTALL(%(value), a b c)   --> false (c is not in value)
+IFOPTALL(%(value), a b !c)  --> true  (c is not in value, so !c is assumed)
+\endverbatim
+
+<code>IFOPTANY(value, opt_flags)</code> succeeds if ANY flag from
+<code>opt_flags</code> has the same state (set/unset) in value.
+
+\verbatim
+SETVAR value=a b
+IFOPTANY(%(value), a)       --> true
+IFOPTANY(%(value), a b c)   --> true  (a is present in value)
+IFOPTANY(%(value), c)       --> false
+IFOPTANY(%(value), !c)      --> true  (c is not in value, so !c is assumed)
+\endverbatim
+
+
 */
