@@ -11,7 +11,20 @@ using namespace cast::cdl;
 extern "C" {
   cast::CASTComponentPtr 
   newComponent() {
+    printf("Creating unnamed component\n");
     return new ExampleComponent();
+  }
+
+  cast::CASTComponentPtr 
+  newNamedComponent(const char* _name) {
+    printf("Creating component named '%s'\n", _name);
+    std::string name(_name);
+    if (name == "Example1")
+      return new ExampleComponent();
+    if (name == "Example2")
+      return new ExampleComponent();
+    printf("Error: unknown component '%s'\n", _name);
+    return 0;
   }
 }
 
@@ -36,8 +49,7 @@ ExampleComponent::runComponent() {
       cout<<(now - justasec)<<endl;
       cout<<(justasec - now)<<endl;
 
-
-      sleepComponent(1000);
+      sleepComponent(5000);
     }
   }
 }

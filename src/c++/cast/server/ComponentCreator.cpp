@@ -78,35 +78,93 @@ void* loadLibrary(const string & _baseName)  {
 
 }
 
- 
-  DynamicComponentCreator * 
-  createComponentCreator(const std::string &_baseName) 
-  throw (CASTException)  {
-    
-    //load the library
-    void *libHandle = loadLibrary(_baseName);
-
-    //pointer to the function for creating the component
-    cast::CASTComponentPtr (*newComponent)();
-
-    //void pointer to the method
-    void *nc = dlsym(libHandle, "newComponent");
-
-    //newComponent = (cast::CASTComponentPtr (*)(const string &))(nc);
-    newComponent = (cast::CASTComponentPtr (*)())(nc);
-
-    if(newComponent == 0) {
-      throw CASTException(exceptionMessage(__HERE__,
-					   "no newComponent function defined in library lib%s.so", 
-					   _baseName.c_str()));
+void DynamicComponentCreator::splitComponentName(const std::string &_fullName,
+    /*out*/ std::string& libName, /*out*/ std::string& componentName)
+{
+    int pos = _fullName.find("#");
+    if (pos == string::npos) {
+      libName = _fullName;
+      componentName = "";
     }
+    else {
+      libName = _fullName.substr(0, pos);
+      componentName = _fullName.substr(pos+1);
+    }
+}
 
-    //create a new dynamic creator object using the dynamically loaded
-    //library function pointer 
-    return new DynamicComponentCreator(libHandle,
-				       newComponent);
+cast::CASTComponentPtr DynamicComponentCreator::createNewComponent(
+      const std::string &_procName, const std::string &_typeName) const
+{
+  //printf (" ***** CREATING '%s' of type '%s' *****\n", _procName.c_str(), _typeName.c_str());
+
+  string libName, componentName;
+  DynamicComponentCreator::splitComponentName(_typeName, libName, componentName);
+  cast::CASTComponentPtr  proc = 0;
+  if (componentName.length() < 1) {
+    if (! m_newComponent) {
+      throw CASTException(exceptionMessage(__HERE__,
+            "Failed to load component '%s'. No function newComponent() defined in library lib%s.so", 
+            _procName.c_str(), libName.c_str()));
+    }
+    proc = m_newComponent();
   }
+  else {
+    if (! m_newNamedComponent) {
+      throw CASTException(exceptionMessage(__HERE__,
+            "Failed to load component '%s' (%s). No function newNamedComponent(char*) defined in library lib%s.so", 
+            _procName.c_str(), _typeName.c_str(), libName.c_str()));
+    }
+    proc = m_newNamedComponent(componentName.c_str());
+  }
+
+  if (! proc) {
+    throw cast::CASTException(exceptionMessage(__HERE__, 
+          "Failed to load component '%s' (%s)", 
+          _procName.c_str(), _typeName.c_str()));
+  }
+  proc->setID(_procName, ::Ice::Current());
+
+  return proc;
+};
  
+DynamicComponentCreator* DynamicComponentCreator::createComponentCreator(const std::string &_baseName)
+   throw (CASTException)
+{
+
+  // mmarko: add support for multiple components in a single library
+  string libName, componentName;
+  DynamicComponentCreator::splitComponentName(_baseName, libName, componentName);
+
+  //load the library
+  void *libHandle = loadLibrary(libName);
+
+  //pointer to the function for creating the component
+  //cast::CASTComponentPtr (*newComponent)();
+  //DynamicComponentCreator::NewComponentFn newComponent;
+  //DynamicComponentCreator::NewNamedComponentFn newNamedComponent;
+
+  //void pointer to the method
+  void *nc = dlsym(libHandle, "newComponent");
+  void *nnc = dlsym(libHandle, "newNamedComponent");
+
+  //newComponent = (cast::CASTComponentPtr (*)(const string &))(nc);
+  //newComponent = (cast::CASTComponentPtr (*)())(nc);
+
+  //if(newComponent == 0) {
+  if( nc == 0 && nnc == 0 ) {
+    throw CASTException(exceptionMessage(__HERE__,
+          "no function newComponent() or newNamedComponent(char*) defined in library lib%s.so", 
+          libName.c_str()));
+  }
+
+  //create a new dynamic creator object using the dynamically loaded
+  //library function pointer 
+  return new DynamicComponentCreator(libHandle,
+      DynamicComponentCreator::NewComponentFn(nc),
+      DynamicComponentCreator::NewNamedComponentFn(nnc));
+  //newComponent);
+}
+
 
 
 

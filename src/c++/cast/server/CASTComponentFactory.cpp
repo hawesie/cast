@@ -21,10 +21,12 @@ namespace cast {
     try {
       //get creator
       DynamicComponentCreator * dcc(NULL);
-      ComponentCreatorMap::iterator i = m_creators.find(type);
+      string libName, componentName;
+      DynamicComponentCreator::splitComponentName(type, libName, componentName);
+      ComponentCreatorMap::iterator i = m_creators.find(libName);
       //if we don't have it yet
       if(i == m_creators.end()) {
-	dcc = createComponentCreator(type);
+	dcc = DynamicComponentCreator::createComponentCreator(type);
 	m_creators[type] = dcc;       
      }
       else {
@@ -35,7 +37,7 @@ namespace cast {
       iceid.name = id;
       iceid.category = type;    
       
-      cast::CASTComponentPtr component = dcc->createNewComponent(id);
+      cast::CASTComponentPtr component = dcc->createNewComponent(id, type);
       component->_setObjectAdapter(_crt.adapter);
       component->_setIceIdentity(iceid);
       component->_setComponentPointer(component);

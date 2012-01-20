@@ -1,0 +1,5 @@
+HOST localhost
+
+COMPONENT CPP default ExampleComponent          --log  #--debug
+COMPONENT CPP named.1 ExampleComponent#Example1 --log  #--debug
+COMPONENT CPP named.2 ExampleComponent#Example2 --log  #--debug
