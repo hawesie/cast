@@ -81,14 +81,14 @@ void* loadLibrary(const string & _baseName)  {
 void DynamicComponentCreator::splitComponentName(const std::string &_fullName,
     /*out*/ std::string& libName, /*out*/ std::string& componentName)
 {
-    int pos = _fullName.find("#");
+    int pos = _fullName.find("@");
     if (pos == string::npos) {
       libName = _fullName;
       componentName = "";
     }
     else {
-      libName = _fullName.substr(0, pos);
-      componentName = _fullName.substr(pos+1);
+      componentName = _fullName.substr(0, pos);
+      libName = _fullName.substr(pos+1);
     }
 }
 
