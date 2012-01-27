@@ -356,10 +356,18 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 		return m_startCalled;
 	}
 
+	/**
+	 * Can be safely overridden by inheriting components.
+	 */
 	protected void start() {
 
 	}
 
+	/**
+	 * Can be safely overridden by inheriting components.
+	 * 
+	 * @param _config
+	 */
 	protected void configure(Map<String, String> _config) {
 	}
 
@@ -427,6 +435,9 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 		}
 	}
 
+	/**
+	 * Can be safely overridden by inheriting components.
+	 */
 	protected void stop() {
 	}
 
@@ -578,8 +589,8 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 	 */
 	public <InterfaceType extends Ice.Object> void registerIceServer(
 			Class<InterfaceType> _interface, InterfaceType _servant) {
-		registerIceInterface(getComponentID(), CASTUtils
-				.toServantCategory(_interface), _servant);
+		registerIceInterface(getComponentID(),
+				CASTUtils.toServantCategory(_interface), _servant);
 	}
 
 	/**

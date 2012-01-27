@@ -214,6 +214,7 @@ public class CASTUtils {
 		return sb.toString();
 	}
 
+	
 	/**
 	 * Generates a default category name for a server offering this type.
 	 * 
