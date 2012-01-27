@@ -45,6 +45,7 @@ import cast.cdl.CONFIGFILEKEY;
 import cast.cdl.ComponentDescription;
 import cast.cdl.ComponentLanguage;
 import cast.cdl.WMIDSKEY;
+import cast.CASTException;
 
 /**
  * An object that builds an architecture configuration from a config file.
@@ -52,6 +53,84 @@ import cast.cdl.WMIDSKEY;
  * @author nah
  */
 public class CASTConfigParser {
+
+	public static class PreprocException extends CASTException {
+		private static final long serialVersionUID = -2539112153883115654L;
+		public PreprocException(String _message) {
+			super(_message);
+		}
+	}
+
+	// @author: mmarko
+	private static class PreprocStackItem {
+		String m_startLine;
+		boolean m_trueblock; // true if currently reading the block to be included
+		boolean m_elsefound; // true if ELSE was encountered
+		boolean m_skiptoend; // unused; true it the rest of the statement should be skipped
+		PreprocStackItem(String startLine, boolean trueblock) {
+			m_startLine = startLine;
+			m_trueblock = trueblock;
+			m_elsefound = false;
+			m_skiptoend = false; // to be used with ELIFEQ, ELIFNEQ
+		}
+	}
+
+	// @author: mmarko
+	private static class PreprocStack {
+		private ArrayList<PreprocStackItem> m_items = new ArrayList<PreprocStackItem>();
+
+		boolean isEmpty() {
+			return m_items.isEmpty();
+		}
+		boolean isBlockEnabled() {
+			for (PreprocStackItem si : m_items) {
+				if (! si.m_trueblock) {
+					return false;
+				}
+			}
+			return true;
+		}
+		void pushBlock(String line, boolean active) {
+			m_items.add(new PreprocStackItem(line, active));
+		}
+		void popBlock() throws PreprocException {
+			if (m_items.size() < 1) {
+				throw new PreprocException(PREPROC_ENDIF + " statement witouth an IF* statement.");
+			}
+			m_items.remove(m_items.size() - 1);
+		}
+		void elseBlock() throws PreprocException {
+			if (m_items.size() < 1) {
+				throw new PreprocException(PREPROC_ELSE + " statement witouth an IF* statement.");
+			}
+			PreprocStackItem si = m_items.get(m_items.size() - 1);
+			if (si.m_elsefound) {
+				throw new PreprocException("Duplicate " + PREPROC_ELSE + " statement. Stack:\n****\n"
+						+ dump() + "\n****\n");
+			}
+			si.m_trueblock = !si.m_trueblock; // && !si.m_skiptoend
+			si.m_elsefound = true;
+		}
+		String topStartLine() {
+			if (m_items.size() < 1) {
+				return "''";
+			}
+			PreprocStackItem si = m_items.get(m_items.size() - 1);
+			return si.m_startLine;
+		}
+		String dump() {
+			String res = "";
+			for (PreprocStackItem si : m_items) {
+				if (res.length() == 0) {
+					res = res + si.m_startLine;
+				}
+				else {
+					res = res + "\n" + si.m_startLine;
+				}
+			}
+			return res;
+		}
+	}
 
 	/**
 	 * 
@@ -79,6 +158,24 @@ public class CASTConfigParser {
 	private static final String JAVA_FLAG = "JAVA";
 
 	private static final String PYTHON_FLAG = "PYTHON";
+
+	private static final String PREPROC_IFTRUE = "IFTRUE";
+	private static final String PREPROC_TRUEVALUES = ".true.yes.on.1.2.3.4.5.6.7.8.9.";
+
+	private static final String PREPROC_IFFALSE = "IFFALSE";
+	private static final String PREPROC_FALSEVALUES = ".false.no.off.0.."; // last is empty string
+
+	private static final String PREPROC_IFEQ = "IFEQ";
+
+	private static final String PREPROC_IFNOTEQ = "IFNEQ";
+
+	private static final String PREPROC_IFOPTANY = "IFOPTANY";
+
+	private static final String PREPROC_IFOPTALL = "IFOPTALL";
+
+	private static final String PREPROC_ELSE = "ELSE";
+
+	private static final String PREPROC_ENDIF = "ENDIF";
 
 	private static ArchitectureConfiguration m_architecture;
 
@@ -129,6 +226,10 @@ public class CASTConfigParser {
 	private static String m_currentFile;
 
 	public static boolean m_bPrintHostInfo = false;
+
+	public static boolean m_bDebug = false; // Prints every line in expandVars
+
+	public static boolean m_bParseOnly = false; // Terminates after expandVars
 
 	//
 	// /**
@@ -303,6 +404,17 @@ public class CASTConfigParser {
 	 * @param line
 	 * @return
 	 */
+	private static boolean isPreproc(String line) {
+		return line.startsWith(PREPROC_IFEQ) || line.startsWith(PREPROC_IFNOTEQ)
+			|| line.startsWith(PREPROC_IFTRUE) || line.startsWith(PREPROC_IFFALSE)
+			|| line.startsWith(PREPROC_IFOPTANY) || line.startsWith(PREPROC_IFOPTALL)
+			|| line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF);
+	}
+
+	/**
+	 * @param line
+	 * @return
+	 */
 	private static boolean isHeader(String line) {
 		return line.startsWith(SUBARCH_HEADER) || line.startsWith(ARCH_HEADER)
 				|| (line.startsWith(HOST_HEADER) && !line.startsWith(CMD_SETHOST))
@@ -329,18 +441,23 @@ public class CASTConfigParser {
 		m_architecture = parseArchitectureLine(archLine);
 
 		int i = 0;
-		for (i = _i + 1; i < _lines.size(); i++) {
-			line = _lines.get(i);
+		try {
+			for (i = _i + 1; i < _lines.size(); i++) {
+				line = _lines.get(i);
 
-			if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
-				// look for end of section
-				if (isHeader(line)) {
-					break;
-				} else {
-					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
-					parseArchitectureComponentLine(line, m_architecture);
+				if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
+					// look for end of section
+					if (isHeader(line)) {
+						break;
+					} else {
+						//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
+						parseArchitectureComponentLine(line, m_architecture);
+					}
 				}
 			}
+		}
+		catch (ArchitectureConfigurationException e) {
+			throw new ArchitectureConfigurationException(e.message + "\nTrace:\n" + getTrace(_lines, i));
 		}
 
 		// System.out.println("end arch parse-----------------------");
@@ -472,7 +589,9 @@ public class CASTConfigParser {
 				// we have a value
 
 				// if it's a string
-				if (token.startsWith("\"") && (!token.endsWith("\""))) {
+				if (token.compareTo("\"") == 0 ||
+					token.startsWith("\"") && (!token.endsWith("\"")))
+				{
 					// collect bits of string into one
 					value = token;
 					while (_tokeniser.hasMoreTokens()) {
@@ -881,7 +1000,7 @@ public class CASTConfigParser {
 			}
 		}
 
-		value = replaceVars(value);
+		value = replaceAllVars(value);
 		//System.out.println(token + " ... Value ... " + value);
 		m_configVars.put(token, value);
 
@@ -911,7 +1030,15 @@ public class CASTConfigParser {
 		return i;
 	}
 
-	private static String replaceVars(String line) {
+	private static String replaceExistingVars(String line) {
+		return _replaceVars(line, true);
+	}
+
+	private static String replaceAllVars(String line) {
+		return _replaceVars(line, false);
+	}
+
+	private static String _replaceVars(String line, boolean bKeepMissingVars) {
 		int pos = line.indexOf("%(");
 		if (pos < 0) {
 			return line;
@@ -929,12 +1056,17 @@ public class CASTConfigParser {
 				res = res + line.substring(lastpos, pos) + value;
 			}
 			else if (m_configVars.containsKey(token)) {
-			  String value = m_configVars.get(token);
+				String value = m_configVars.get(token);
 				res = res + line.substring(lastpos, pos) + value;
 			}
 			else {
 				System.err.println(WARNING_LABEL + "Variable %(" + token + ") not defined.");
-				res = res + line.substring(lastpos, end+1);
+				if (bKeepMissingVars) {
+					res = res + line.substring(lastpos, end+1);
+				}
+				else {
+					res = res + line.substring(lastpos, pos);
+				}
 			}
 			lastpos = end + 1;
 			pos = line.indexOf("%(", end+1);
@@ -990,38 +1122,214 @@ public class CASTConfigParser {
 		return value;
 	}
 
-	private static void expandVars(ArrayList<String> _lines) {
+	private static String extractPreprocParams(String line) throws PreprocException {
+		int p1 = line.indexOf("(");
+		int p2 = line.lastIndexOf(")");
+		if (p1 < 0 || p2 < 0) {
+			throw new PreprocException("Missing parentheses in: " + line);
+		}
+		return line.substring(p1 + 1, p2).trim();
+	}
+
+	// @author: mmarko
+	private static boolean evalPreprocCompare(String line) throws PreprocException {
+		String value = extractPreprocParams(line);
+		String[] parts = value.split(",", 2);
+		if (parts.length < 2) {
+			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
+		}
+		String pa = replaceAllVars(parts[0].trim());
+		String pb = replaceAllVars(parts[1].trim());
+
+		return pa.compareTo(pb) == 0;
+	}
+
+	// @author: mmarko
+	private static boolean evalPreprocBoolean(String line) throws PreprocException {
+		String value = extractPreprocParams(line);
+		String pa = replaceAllVars(value).toLowerCase();
+		pa = pa.trim(); // TODO: also strip quotes!
+		pa = "." + pa + ".";
+		if (PREPROC_TRUEVALUES.indexOf(pa) >= 0) {
+			return true;
+		}
+		if (PREPROC_FALSEVALUES.indexOf(pa) >= 0) {
+			return false;
+		}
+		throw new PreprocException("Invalid boolean value '" + replaceAllVars(value) + "' in: " + line);
+	}
+
+	// @author: mmarko
+	// @returns: ["flagname", "!"]; The second element is empty if the flag is not negated.
+	private static String[] parseFlag(String flag) {
+		boolean negflag = false;
+		int i = 0;
+		while(i < flag.length() && flag.charAt(i) == '!') {
+			negflag = !negflag;
+			i++;
+		}
+		if (i >= flag.length()) {
+			return null;
+		}
+		String[] res = new String[2];
+		res[0] = flag.substring(i);
+		res[1] = negflag ? "!" : "";
+		return res;
+	}
+
+	// @author: mmarko
+	// IFOPTANY(value, flag flag !flag) # true if any flag is in value
+	// IFOPTALL(value, flag flag !flag) # true if all flags are in value
+	// If a flag is not in value, !flag is true.
+	// Variable replacement is done in both parameters.
+	private static boolean evalPreprocOptions(String line, boolean all) throws PreprocException {
+		String value = extractPreprocParams(line);
+		String[] parts = value.split(",", 2);
+		if (parts.length < 2) {
+			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
+		}
+		String[] flagParts = replaceAllVars(parts[1]).split("[ \t]");
+		if (flagParts.length < 1)
+			return true;
+		String[] valParts = replaceAllVars(parts[0]).split("[ \t]");
+		for (String flag : flagParts) {
+			String[] pflag = parseFlag(flag);
+			if (pflag == null) {
+				continue;
+			}
+			boolean flagfound = false;
+			String[] pvf = null;
+			for (String vf : valParts) {
+				boolean negvf = false;
+				pvf = parseFlag(vf);
+				if (pvf == null) {
+					continue;
+				}
+				if (pvf[0].compareTo(pflag[0]) == 0) {
+					flagfound = true;
+					break;
+				}
+			}
+			if (! flagfound) {
+				pvf = new String[2];
+				pvf[0] = pflag[0];
+				pvf[1] = "!";
+			}
+			boolean flagmatched = (pvf[0].compareTo(pflag[0]) == 0) && (pvf[1].compareTo(pflag[1]) == 0);
+			if (! flagmatched && all) {
+				return false;
+			}
+			if (flagmatched && !all) {
+				return true;
+			}
+		}
+		// We get here if:
+		//   all==true and all matched --> return true
+		//   all==false and none matched --> return false
+		//   --> return all
+		return all;
+	}
+
+	// @author: mmarko
+	private static void parsePreprocLine(String line, PreprocStack stack) throws PreprocException {
+		if (line.startsWith(PREPROC_ENDIF)) {
+			stack.popBlock();
+		}
+		else if (line.startsWith(PREPROC_ELSE)) {
+			stack.elseBlock();
+		}
+		else if (line.startsWith(PREPROC_IFEQ)) {
+			boolean eval = evalPreprocCompare(line);
+			stack.pushBlock(line, eval);
+		}
+		else if (line.startsWith(PREPROC_IFNOTEQ)) {
+			boolean eval = evalPreprocCompare(line);
+			stack.pushBlock(line, !eval);
+		}
+		else if (line.startsWith(PREPROC_IFTRUE)) {
+			boolean eval = evalPreprocBoolean(line);
+			stack.pushBlock(line, eval);
+		}
+		else if (line.startsWith(PREPROC_IFFALSE)) {
+			boolean eval = evalPreprocBoolean(line);
+			stack.pushBlock(line, !eval);
+		}
+		else if (line.startsWith(PREPROC_IFOPTANY)) {
+			boolean eval = evalPreprocOptions(line, false);
+			stack.pushBlock(line, eval);
+		}
+		else if (line.startsWith(PREPROC_IFOPTALL)) {
+			boolean eval = evalPreprocOptions(line, true);
+			stack.pushBlock(line, eval);
+		}
+	}
+
+	// @author: mmarko
+	private static void expandVars(ArrayList<String> _lines) throws PreprocException {
 		ArrayList<String> orgLines = new ArrayList<String>(_lines);
 		_lines.clear();
 		boolean headerFound = false;
+		boolean blockEnabled = true;
+		PreprocStack stack = new PreprocStack();
 
 		for (int i = 0; i < orgLines.size(); i++) {
 			String line = (String) orgLines.get(i);
+			if (m_bDebug && _lines.size() > 0) {
+				System.out.println(_lines.get(_lines.size() - 1));
+			}
 
+			line = line.trim();
 			if (line.startsWith(COMMENT_CHAR)) {
-				_lines.add(line);
+				if (m_bDebug && line.startsWith(COMMENT_CHAR + "EXPAND")) {
+					_lines.add(replaceAllVars(line));
+				}
+				else {
+					_lines.add(line);
+				}
+				continue;
+			}
+			else if (isPreproc(line)) {
+				String extra = "";
+				if (m_bDebug && (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF))) {
+					extra = " <-- " + stack.topStartLine();
+				}
+				parsePreprocLine(line, stack);
+				blockEnabled = stack.isBlockEnabled();
+				_lines.add(COMMENT_CHAR + line + extra);
+				continue;
+			}
+
+			if (! blockEnabled) {
+				_lines.add(COMMENT_CHAR + " -- " + line);
 			}
 			else if (isHeader(line)) {
 				headerFound = true;
-				_lines.add(replaceVars(line));
+				_lines.add(replaceExistingVars(line));
 			}
 			else {
 				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)) {
 					i = parseSetvarLine(orgLines, i);
+					_lines.add(COMMENT_CHAR + line);
 				}
 				else if (line.startsWith(CMD_SETHOST)) {
 					if (headerFound) {
 						System.err.println(ERROR_LABEL + CMD_SETHOST +
-							   	" directives must preceede any other directives"
+								" directives must preceede any other directives"
 								+ " except " + CMD_VARSET + " and " + CMD_VARDEFAULT + ".");
 					}
 					else
 					   	i = parseSethostLine(orgLines, i);
+
+					_lines.add(COMMENT_CHAR + line);
 				}
 				else {
-					_lines.add(replaceVars(line));
+					_lines.add(replaceExistingVars(line));
 				}
 			}
+		}
+		if (! stack.isEmpty()) {
+			throw new PreprocException("Unterminated conditional statements found:\n****\n"
+				   	+ stack.dump() + "\n****\n");
 		}
 	}
 
@@ -1071,6 +1379,44 @@ public class CASTConfigParser {
 	// _componentHost, config);
 	//
 	// }
+	
+	private static String getTrace(ArrayList<String> lines, int ibad) {
+		int ti = 9;
+		int mid = 5;
+		int i;
+		String[] trace = new String[ti+1];
+		trace[5] = "--> " + lines.get(ibad).trim();
+		ti = mid - 1;
+		i = ibad - 1;
+		while (i >= 0 && ti >= 0) {
+			String line = lines.get(i).trim();
+			i--;
+			if (line.length() < 1) {
+				continue;
+			}
+			trace[ti] = "-   " + line;
+			ti--;
+		}
+		ti = mid + 1;
+		i = ibad + 1;
+		while (i < lines.size() && ti < trace.length) {
+			String line = lines.get(i).trim();
+			i++;
+			if (line.length() < 1) {
+				continue;
+			}
+			trace[ti] = "-   " + line;
+			ti++;
+		}
+		String res = "";
+		for (String s : trace) {
+			if (s != null && s.length() > 0) {
+				if (res.length() == 0) res = res + s;
+				else res = res + "\n" + s;
+			}
+		}
+		return res;
+	}
 
 	/**
 	 * @param _lines
@@ -1090,19 +1436,25 @@ public class CASTConfigParser {
 		SubarchitectureConfiguration subarch = parseSubarchitectureLine(subarchLine);
 
 		int i = _i + 1;
-		for (i = _i + 1; i < _lines.size(); i++) {
-			line = _lines.get(i);
+		try {
+			for (i = _i + 1; i < _lines.size(); i++) {
+				line = _lines.get(i);
 
-			if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
-				// look for end of section
-				if (isHeader(line)) {
-					break;
-				} else {
-					//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
-					parseSubarchitectureComponentLine(line, subarch);
+				if (!(line.startsWith(COMMENT_CHAR) || line.length() == 0)) {
+					// look for end of section
+					if (isHeader(line)) {
+						break;
+					} else {
+						//System.out.println(String.format("comp line %1$03d: %2$s", i, line));
+						parseSubarchitectureComponentLine(line, subarch);
+					}
 				}
 			}
 		}
+		catch (ArchitectureConfigurationException e) {
+			throw new ArchitectureConfigurationException(e.message + "\nTrace:\n" + getTrace(_lines, i));
+		}
+			
 		// System.out.println("end subarch
 		// parse-----------------------");
 
@@ -1398,6 +1750,10 @@ public class CASTConfigParser {
 			if (!configDir.equals(m_configVars.get(VAR_CONFIG_DIR)))
 			  System.out.println("!!! " + VAR_CONFIG_DIR + "=" + m_configVars.get(VAR_CONFIG_DIR));
 
+			if (m_bParseOnly) {
+				return;
+			}
+
 			// setup container to hold everything
 			m_architecture = new ArchitectureConfiguration();
 			processLines(lines);
@@ -1406,6 +1762,9 @@ public class CASTConfigParser {
 			throw new ArchitectureConfigurationException(
 					"Config file, or included file, does not exist: " + _filename, e);
 		} catch (IOException e) {
+			throw new ArchitectureConfigurationException(
+					"Error parsing config file: " + _filename, e);
+		} catch (PreprocException e) {
 			throw new ArchitectureConfigurationException(
 					"Error parsing config file: " + _filename, e);
 		}
@@ -1422,6 +1781,9 @@ public class CASTConfigParser {
 			expandVars(lines);
 			return processLines(lines);
 		} catch (IOException e) {
+			throw new ArchitectureConfigurationException(
+					"Error parsing config file: " + _config, e);
+		} catch (PreprocException e) {
 			throw new ArchitectureConfigurationException(
 					"Error parsing config file: " + _config, e);
 		}

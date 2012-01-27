@@ -20,7 +20,7 @@ namespace cast
       {
 
       public:
-	DECLARE_ABSTRACT_LOG4CXX_OBJECT(ComponentLoggerFactory)
+	DECLARE_LOG4CXX_OBJECT(ComponentLoggerFactory)
 	BEGIN_LOG4CXX_CAST_MAP()
 	  LOG4CXX_CAST_ENTRY(spi::LoggerFactory)
 	END_LOG4CXX_CAST_MAP()

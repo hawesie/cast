@@ -64,7 +64,7 @@ public class StraightMan extends UnmanagedComponent {
 					// let other stuff happen if necessary
 					unlockComponent();
 
-					sleepComponent(1);
+					sleepComponent(5000);
 				}
 			} catch (AlreadyExistsOnWMException e) {
 				e.printStackTrace();

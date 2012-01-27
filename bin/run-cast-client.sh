@@ -3,8 +3,8 @@
 
 
 # sanity check
-if [ $# -ne 2 ] ; then
-  echo "Usage: `basename $0` <cast install prefix, e.g. /usr/local> <cast file>"
+if [ $# -lt 2 ] ; then
+  echo "Usage: `basename $0` <cast install prefix, e.g. /usr/local> <cast file> [options]"
   exit $E_BADARGS
 fi
 
@@ -38,7 +38,8 @@ else
     export ICE_CONFIG=${CAST_ICE_CONFIG}
 fi 
 
-java -ea -classpath ${CLASSPATH}:${CAST_JAR} cast.clients.CASTClient -f $2
+shift
+java -ea -classpath ${CLASSPATH}:${CAST_JAR} cast.clients.CASTClient -f $*
 
 
 if (( $WE_SET_ICE_CONFIG )) ; then

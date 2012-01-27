@@ -1,0 +1,124 @@
+# CAST Configuration File
+# Test for the configuration parser.
+# The comments that start with #EXPAND will undergo variable expansion.
+# Run: cast-client ./test-parser.cast  --debug-parser --parse-only 
+#   --debug-parser: every line will be printed after processing
+#   --parse-only: no components will be created
+
+HOSTNAME    Main            localhost
+HOSTNAME    PlayerHost      [Main]
+HOSTNAME    DisplayHost     [Main]
+
+#EXPAND "%(host:DisplayHost)"=="localhost"
+
+HOST [Main]
+
+SETVAR config=one
+VARDEFAULT config=thewrongone
+
+#EXPAND "%(config)"=="one"
+
+# The lines that should be skipped are prefixed with DISABLED.
+IFEQ(%(config), one)
+    SETVAR valid=Valid Was Set
+    SUBARCHITECTURE spatial.sa
+    JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    CPP TM AlwaysPositiveTaskManager
+ELSE
+    DISABLED SUBARCHITECTURE spatial.sa
+    DISABLED JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    DISABLED CPP TM AlwaysPositiveTaskManager
+ENDIF
+#EXPAND "%(valid)"=="Valid Was Set", should be equal
+
+IFEQ("%(config)", "one")
+    SETVAR valid=Valid Was Set Again
+ENDIF
+#EXPAND "%(valid)"=="Valid Was Set Again", should be equal
+
+IFEQ(%(config), two)
+    SETVAR invalid=Invalid Was Set
+    DISABLED SUBARCHITECTURE spatial.sa
+    DISABLED JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    DISABLED CPP TM AlwaysPositiveTaskManager
+ELSE
+    SUBARCHITECTURE spatial.sa
+    JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    CPP TM AlwaysPositiveTaskManager
+ENDIF
+#EXPAND "%(invalid)"!="Invalid Was Set", the first string should be the variable name
+
+
+SETVAR version=1
+# Nested IFEQs
+IFEQ(%(config), one)
+    CPP TM AlwaysPositiveTaskManager
+    IFEQ(%(version), 1)
+        CPP TM AlwaysPositiveTaskManager
+    ENDIF
+    IFNEQ(%(version), 1)
+        DISABLED CPP TM AlwaysPositiveTaskManager
+    ELSE
+        JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    ENDIF
+ELSE
+    DISABLED CPP TM AlwaysPositiveTaskManager
+    IFEQ(%(version), 1)
+        DISABLED CPP TM AlwaysPositiveTaskManager
+    ENDIF
+    IFNEQ(%(version), 1)
+        DISABLED CPP TM AlwaysPositiveTaskManager
+    ELSE
+        DISABLED JAVA WM cast.architecture.SubarchitectureWorkingMemory
+    ENDIF
+ENDIF
+
+# TEST the boolean value evaluator
+SETVAR test=yes
+INCLUDE test-parser-booltest.incl
+SETVAR test=no
+INCLUDE test-parser-booltest.incl
+SETVAR test=YES
+INCLUDE test-parser-booltest.incl
+SETVAR test=NO
+INCLUDE test-parser-booltest.incl
+SETVAR test=true
+INCLUDE test-parser-booltest.incl
+SETVAR test=false
+INCLUDE test-parser-booltest.incl
+SETVAR test=on
+INCLUDE test-parser-booltest.incl
+SETVAR test=off
+INCLUDE test-parser-booltest.incl
+SETVAR test=
+INCLUDE test-parser-booltest.incl
+SETVAR test=0
+INCLUDE test-parser-booltest.incl
+SETVAR test=1
+INCLUDE test-parser-booltest.incl
+SETVAR test=9
+INCLUDE test-parser-booltest.incl
+#Only single digits are accepted
+#SETVAR test=10
+#INCLUDE test-parser-booltest.incl
+
+
+# TEST the option evaluator
+SETVAR value=a b c
+SETVAR flags=a
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b c
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b c d
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b c !d
+INCLUDE test-parser-opttest.incl
+
+SETVAR value=a b !c
+SETVAR flags=a b c !d
+INCLUDE test-parser-opttest.incl
+SETVAR flags=a b !c !d
+INCLUDE test-parser-opttest.incl
+

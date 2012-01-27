@@ -1,5 +1,7 @@
 include_directories(.)
 
+option(GOOGLE_PROFILER "use google profiler" NO)
+
 # auto generated code
 add_and_include_subdirectory (cast/slice)
 

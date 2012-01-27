@@ -7,12 +7,14 @@ module cast
   module cdl
   {
 
-    const string CASTRELEASESTRING = "2.1.15 (The Greatest Light Is The Greatest Shade)";
+    const string CASTRELEASESTRING = "2.1.16 beta (Three Day Weekend)";
 
     const int JAVASERVERPORT = 10111;
     const int CPPSERVERPORT = 10211;
     const int JAVACLIENTSERVERPORT = 10311;
-    const int PYTHONSERVERPORT = 10112;
+    const int PYTHONSERVERPORT = 10411;
+	const int LOGGINGPORT = 10611;
+
  
     const string SUBARCHIDKEY = "org.cognitivesystem.cast.subarchID"; 
     const string COMPONENTNUMBERKEY = "org.cognitivesystem.cast.componentNumber";
@@ -317,6 +319,23 @@ module cast
     interface WorkingMemory;
     interface TaskManager;
     interface ComponentManager;
+
+
+	/**
+	* Server to collect logging output and send to single sink.
+	*/
+	interface LoggingServer {
+		void logMessage(string message);
+		/**
+		* Log an event in a serialised form compatible with Java object serialisation. This works for Java and C++ with the latter using the Log4CXX output stream classes.
+		*/
+		void logSerialisedEvent(cast::cdl::ByteSeq event);
+
+		/**
+		* Log an event in a serialised form compatible with Java object serialisation. This works for Java and C++ with the latter using the Log4CXX output stream classes. The C++ serialisation doesn't maintain the extra info added by CAST, so this allows them to be send additionally.
+		*/
+			void logSerialisedEventWithAdditions(cast::cdl::ByteSeq event, string id, string saID, string colourStart);
+	};
 
 	/**
      * Servers to sync time across languages and machines. Currently wraps a simple monotonic timer.

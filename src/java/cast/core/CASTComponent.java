@@ -356,10 +356,18 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 		return m_startCalled;
 	}
 
+	/**
+	 * Can be safely overridden by inheriting components.
+	 */
 	protected void start() {
 
 	}
 
+	/**
+	 * Can be safely overridden by inheriting components.
+	 * 
+	 * @param _config
+	 */
 	protected void configure(Map<String, String> _config) {
 	}
 
@@ -427,6 +435,9 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 		}
 	}
 
+	/**
+	 * Can be safely overridden by inheriting components.
+	 */
 	protected void stop() {
 	}
 
@@ -578,8 +589,8 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 	 */
 	public <InterfaceType extends Ice.Object> void registerIceServer(
 			Class<InterfaceType> _interface, InterfaceType _servant) {
-		registerIceInterface(getComponentID(), CASTUtils
-				.toServantCategory(_interface), _servant);
+		registerIceInterface(getComponentID(),
+				CASTUtils.toServantCategory(_interface), _servant);
 	}
 
 	/**
@@ -632,10 +643,24 @@ public abstract class CASTComponent implements _CASTComponentOperations,
 	 */
 	public ComponentLogger getLogger() {
 		if (m_logger == null) {
-			m_logger = ComponentLogger.getLogger(getLoggerName());
-			if (m_logLevel != null) {
-				m_logger.setLevel(m_logLevel);
-				// println("log level set to" + m_logLevel);
+			try {
+				m_logger = ComponentLogger.getLogger(getLoggerName());
+			}
+			catch (ClassCastException e)
+			{
+				m_logger = null;
+			}
+			if (m_logger != null) {
+				if (m_logLevel != null) {
+					m_logger.setLevel(m_logLevel);
+					// println("log level set to" + m_logLevel);
+				}
+			}
+			else {
+				m_logger = getLogger(".main");
+			}
+			if (m_logger == null) {
+				System.out.println("**** LOGGER '" + getLoggerName() + "' CREATION FAILED ****");
 			}
 		}
 		return m_logger;

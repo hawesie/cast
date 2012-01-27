@@ -1,0 +1,9 @@
+
+SETVAR result=""
+IFTRUE(%(test))
+	SETVAR result="%(test)" is true
+ENDIF
+IFFALSE(%(test))
+	SETVAR result="%(test)" is false
+ENDIF
+#EXPAND result: %(result)
