@@ -1270,39 +1270,72 @@ public class CASTConfigParser {
 		_lines.clear();
 		boolean headerFound = false;
 		boolean blockEnabled = true;
+		boolean prevEnabled = true;
+		int skipCount = 0;
 		PreprocStack stack = new PreprocStack();
+		String tmp;
 
 		for (int i = 0; i < orgLines.size(); i++) {
 			String line = (String) orgLines.get(i);
-			if (m_bDebug && _lines.size() > 0) {
-				System.out.println(_lines.get(_lines.size() - 1));
+			line = line.trim();
+
+			if (! blockEnabled) {
+				skipCount++;
 			}
 
-			line = line.trim();
 			if (line.startsWith(COMMENT_CHAR)) {
 				if (m_bDebug && line.startsWith(COMMENT_CHAR + "EXPAND")) {
-					_lines.add(replaceAllVars(line));
+					tmp = replaceAllVars(line);
+					System.out.println(tmp);
 				}
-				else {
-					_lines.add(line);
-				}
+				_lines.add(line);
 				continue;
 			}
 			else if (isPreproc(line)) {
-				String extra = "";
-				if (m_bDebug && (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF))) {
-					extra = " <-- " + stack.topStartLine();
-				}
 				parsePreprocLine(line, stack);
+				prevEnabled = blockEnabled;
 				blockEnabled = stack.isBlockEnabled();
-				_lines.add(COMMENT_CHAR + line + extra);
+
+				_lines.add(COMMENT_CHAR + line);
+
+				if (m_bDebug) {
+					boolean skipStart = false;
+					boolean skipStop = false;
+					if (prevEnabled != blockEnabled) {
+						if (! blockEnabled) {
+							skipStart = true;
+							skipCount = 0;
+						}
+						else {
+							skipStop = true;
+						}
+					}
+					if (skipStop) {
+						System.out.println(String.format("%s ----- %d lines skipped -----",
+									COMMENT_CHAR, skipCount));
+					}
+					if (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF)) {
+						System.out.println(line + " # <-- " + stack.topStartLine());
+					}
+					else {
+						System.out.println(line);
+					}
+					if (skipStart) {
+						System.out.println(COMMENT_CHAR + " ----- skipping block -----");
+					}
+				}
 				continue;
 			}
-
-			if (! blockEnabled) {
+			else if (! blockEnabled) {
 				_lines.add(COMMENT_CHAR + " -- " + line);
+				continue;
 			}
-			else if (isHeader(line)) {
+			
+			if (m_bDebug) {
+				System.out.println(line);
+			}
+
+			if (isHeader(line)) {
 				headerFound = true;
 				_lines.add(replaceExistingVars(line));
 			}
@@ -1318,7 +1351,7 @@ public class CASTConfigParser {
 								+ " except " + CMD_VARSET + " and " + CMD_VARDEFAULT + ".");
 					}
 					else
-					   	i = parseSethostLine(orgLines, i);
+						i = parseSethostLine(orgLines, i);
 
 					_lines.add(COMMENT_CHAR + line);
 				}
@@ -1329,7 +1362,7 @@ public class CASTConfigParser {
 		}
 		if (! stack.isEmpty()) {
 			throw new PreprocException("Unterminated conditional statements found:\n****\n"
-				   	+ stack.dump() + "\n****\n");
+					+ stack.dump() + "\n****\n");
 		}
 	}
 
