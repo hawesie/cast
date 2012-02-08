@@ -1292,6 +1292,10 @@ public class CASTConfigParser {
 				continue;
 			}
 			else if (isPreproc(line)) {
+				String stackTop = "";
+				if (m_bDebug) {
+					stackTop = stack.topStartLine();
+				}
 				parsePreprocLine(line, stack);
 				prevEnabled = blockEnabled;
 				blockEnabled = stack.isBlockEnabled();
@@ -1315,7 +1319,7 @@ public class CASTConfigParser {
 									COMMENT_CHAR, skipCount));
 					}
 					if (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF)) {
-						System.out.println(line + " # <-- " + stack.topStartLine());
+						System.out.println(line + " # <-- " + stackTop);
 					}
 					else {
 						System.out.println(line);
@@ -1943,3 +1947,4 @@ public class CASTConfigParser {
 	}
 
 }
+/* vim: set sw=4 ts=4 noet list :vim */
