@@ -8,6 +8,8 @@
 " Use:
 "   add a modeline to cast files, sth. like:
 "      # vim: set ft=cast :
+"   or use an autocmd like:
+"      au BufRead,BufNewFile *.cast,*.incl		set filetype=cast
 
 " Quit when a (custom) syntax file was already loaded
 if exists("b:current_syntax")
@@ -55,7 +57,7 @@ hi def link castTodo		Todo
 hi def link castString		String
 
 hi def link castSubarch 	Keyword
-hi def link castSubarchId	Special
+hi def link castSubarchId	Title
 
 hi def link castHostname	Keyword
 hi def link castInclude		Keyword
