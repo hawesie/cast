@@ -1022,11 +1022,16 @@ public class CASTConfigParser {
 		String value = m.group(3);
 
 		token = HOSTVAR_PREFIX + token;
-		value = expandComponentHost(value);
 
-		if (m_bPrintHostInfo) System.out.println(token + "=" + value);
+		// HOSTNAME works like VARDEFAULT
+		if (! m_configVars.containsKey(token)) {
+			value = replaceExistingVars(value);
+			value = expandComponentHost(value);
 
-		m_configVars.put(token, value);
+			if (m_bPrintHostInfo) System.out.println(token + "=" + value);
+			m_configVars.put(token, value);
+		}
+
 		return i;
 	}
 
@@ -1052,7 +1057,7 @@ public class CASTConfigParser {
 			//System.out.println(token);
 
 			if (token.startsWith(HOSTVAR_PREFIX)) {
-			  String value = expandHostVar(token);
+				String value = expandHostVar(token);
 				res = res + line.substring(lastpos, pos) + value;
 			}
 			else if (m_configVars.containsKey(token)) {

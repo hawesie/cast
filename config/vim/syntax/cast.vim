@@ -34,8 +34,8 @@ syn keyword     castInclude       contained INCLUDE  skipwhite nextgroup=castAny
 syn keyword     castHostname      contained HOSTNAME skipwhite nextgroup=componentParams
 syn keyword     castSetvar          contained SETVAR VARDEFAULT skipwhite nextgroup=castSetvarVariable
 syn match       castSetvarVariable  contained "[-_a-zA-Z0-9.@]\+" skipwhite nextgroup=castSetvarEqual
-syn match       castSetvarEqual     contained "=" nextgroup=castMultiLine,castSetvarValue
-syn match       castSetvarValue     contained ".*$" contains=castComment
+syn match       castSetvarEqual     contained "=" skipwhite nextgroup=castSetvarValue,castMultiLine
+syn match       castSetvarValue     contained "\S\(.*\S\)\?\ze\s*" skipwhite contains=castComment
 syn keyword     castConditional     contained IFEQ IFNEQ IFOPTALL IFOPTANY IFTRUE IFFALSE  nextgroup=castAny
 syn keyword     castEndConditional  contained ELSE ENDIF  nextgroup=castAny
 syn match       castAny             contained ".*$" contains=castComment
@@ -44,7 +44,7 @@ syn match       castAny             contained ".*$" contains=castComment
 syn match	castComment	"#.*" contains=castTodo
 syn match	castBolComment	"^\s*#.*" contained contains=castTodo
 syn region	castString      start=+"+  end=+"+ oneline contained
-syn region      castMultiLine   contained matchgroup=Special start=".*\zs<multiline>\ze\s*$" end="^\s*\zs</multiline>" contains=castString,castBolComment
+syn region      castMultiLine   contained matchgroup=Special start="<multiline>" end="^\s*\zs</multiline>" contains=castString,castBolComment
 
 " Define the default highlighting.
 " Only used when an item doesn't have highlighting yet
