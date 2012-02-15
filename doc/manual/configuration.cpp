@@ -321,6 +321,10 @@ configuration file before any other command except <code>SETVAR</code>,
 <code>VARDEFAULT</code> and <code>INCLUDE</code> (which can again include only
 the four commands mentioned here).
 
+From version 2.1.16b HOSTNAME behaves like VARDEFAULT, while before it behaved
+more like SETVAR. Additionally variables that are present in the value part
+are expanded.
+
 The defined host-name can be used in the form <code>[host-name]</code> anywhere
 a host address is recognized by the config parser, as described with each
 command above. A host name can additionally be used in a variable expansion
@@ -334,9 +338,11 @@ to an instance of the Player server which is also running on the host
 <code>PlayerHost</code>.
 
 \verbatim
+SETVAR     myotherhost=[Main]
 HOSTNAME   Main        localhost
 HOSTNAME   PlayerHost  192.168.26.34
 HOSTNAME   LaserHost   [Main]
+HOSTNAME   OtherHost   %(myotherhost)
 
 HOST       [Main]
 COMPONENT  [LaserHost] CPP laser.server LaserServerPlayer --player-host %(host:PlayerHost)
