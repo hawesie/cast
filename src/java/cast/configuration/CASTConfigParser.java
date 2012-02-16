@@ -159,24 +159,6 @@ public class CASTConfigParser {
 
 	private static final String PYTHON_FLAG = "PYTHON";
 
-	private static final String PREPROC_IFTRUE = "IFTRUE";
-	private static final String PREPROC_TRUEVALUES = ".true.yes.on.1.2.3.4.5.6.7.8.9.";
-
-	private static final String PREPROC_IFFALSE = "IFFALSE";
-	private static final String PREPROC_FALSEVALUES = ".false.no.off.0.."; // last is empty string
-
-	private static final String PREPROC_IFEQ = "IFEQ";
-
-	private static final String PREPROC_IFNOTEQ = "IFNEQ";
-
-	private static final String PREPROC_IFOPTANY = "IFOPTANY";
-
-	private static final String PREPROC_IFOPTALL = "IFOPTALL";
-
-	private static final String PREPROC_ELSE = "ELSE";
-
-	private static final String PREPROC_ENDIF = "ENDIF";
-
 	private static ArchitectureConfiguration m_architecture;
 
 	private static String m_defaultHost;
@@ -215,6 +197,24 @@ public class CASTConfigParser {
 	private static String CMD_SETHOST = "HOSTNAME";
 	private static String HOSTVAR_PREFIX = "host:";
 	private static String HOSTVAR_LOCALHOST = HOSTVAR_PREFIX + "localhost";
+
+	private static final String PREPROC_IFTRUE = "IFTRUE";
+	private static final String PREPROC_TRUEVALUES = ".true.yes.on.1.2.3.4.5.6.7.8.9.";
+
+	private static final String PREPROC_IFFALSE = "IFFALSE";
+	private static final String PREPROC_FALSEVALUES = ".false.no.off.0.."; // last is empty string
+
+	private static final String PREPROC_IFEQ = "IFEQ";
+
+	private static final String PREPROC_IFNOTEQ = "IFNEQ";
+
+	private static final String PREPROC_IFOPTANY = "IFOPTANY";
+
+	private static final String PREPROC_IFOPTALL = "IFOPTALL";
+
+	private static final String PREPROC_ELSE = "ELSE";
+
+	private static final String PREPROC_ENDIF = "ENDIF";
 
 	public static final String VAR_CURRENT_DIR = "CURRENT_DIR";
 
@@ -1399,7 +1399,9 @@ public class CASTConfigParser {
 					if (headerFound) {
 						System.err.println(ERROR_LABEL + CMD_SETHOST +
 								" directives must preceede any other directives"
-								+ " except " + CMD_VARSET + " and " + CMD_VARDEFAULT + ".");
+								+ " except: " + CMD_VARSET + "," + CMD_VARDEFAULT
+								+ ", " + CMD_OPTSET + ", " + CMD_OPTDEFAULT
+								+ " and conditional statements.");
 					}
 					else
 						i = parseSethostLine(orgLines, i);
