@@ -207,6 +207,8 @@ public class CASTConfigParser {
 
 	private static String CMD_VARSET = "SETVAR";
 	private static String CMD_VARDEFAULT = "VARDEFAULT";
+	private static String CMD_OPTSET = "SETOPT";
+	private static String CMD_OPTDEFAULT = "OPTDEFAULT";
 
 	// Special variables for host names are stored internally with 'host:' prefix.
 	// They are treated specially in parseSetvarLine and replaceVars.
@@ -1001,7 +1003,46 @@ public class CASTConfigParser {
 		}
 
 		value = replaceAllVars(value);
-		//System.out.println(token + " ... Value ... " + value);
+
+		if ((cmd.equals(CMD_OPTSET) || cmd.equals(CMD_OPTDEFAULT)) && m_configVars.containsKey(token)) {
+			boolean newFlagsOnly = cmd.equals(CMD_OPTDEFAULT);
+			String curval = m_configVars.get(token);
+			String[] curFlags = replaceAllVars(curval).split("[ \t]");
+			String[] modFlags = value.split("[ \t]");
+			if (curFlags.length > 0 && modFlags.length > 0) {
+				String[] newFlags = new String[modFlags.length];
+				int nNew = 0;
+				for (int im = 0; im < modFlags.length; im++) {
+					String[] cm = parseFlag(modFlags[im]);
+					boolean found = false;
+					for (int ic = 0; ic < curFlags.length; ic++) {
+						String[] cf = parseFlag(curFlags[ic]);
+						if (! cf[0].equals(cm[0]))
+							continue;
+						found = true;
+						if (!newFlagsOnly) {
+							curFlags[ic] = modFlags[im];
+						}
+					}
+					if (!found) {
+						newFlags[nNew] = modFlags[im];
+						nNew++;
+					}
+				}
+				StringBuffer os = new StringBuffer();
+				for (String s : curFlags) {
+					os.append(s);
+					os.append(" ");
+				}
+				for (int im = 0; im < nNew; im++) {
+					os.append(newFlags[im]);
+					os.append(" ");
+				}
+				value = os.toString();
+			}
+		}
+
+		//System.out.println("***" + cmd + ": " + token + " = " + value);
 		m_configVars.put(token, value);
 
 		return i;
@@ -1349,7 +1390,8 @@ public class CASTConfigParser {
 				_lines.add(replaceExistingVars(line));
 			}
 			else {
-				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)) {
+				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)
+						|| line.startsWith(CMD_OPTSET) || line.startsWith(CMD_OPTDEFAULT)) {
 					i = parseSetvarLine(orgLines, i);
 					_lines.add(COMMENT_CHAR + line);
 				}

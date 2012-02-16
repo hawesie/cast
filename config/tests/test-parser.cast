@@ -8,7 +8,8 @@
 HOSTNAME    Main            localhost
 HOSTNAME    PlayerHost      [Main]
 HOSTNAME    DisplayHost     [Main]
-
+#EXPAND "%(host:DisplayHost)"=="localhost"
+HOSTNAME    DisplayHost     this-should-be-ignored
 #EXPAND "%(host:DisplayHost)"=="localhost"
 
 HOST [Main]
@@ -121,4 +122,16 @@ SETVAR flags=a b c !d
 INCLUDE test-parser-opttest.incl
 SETVAR flags=a b !c !d
 INCLUDE test-parser-opttest.incl
+
+# TEST OPDDEFAULT and SETOPT
+SETVAR opt001=a b c
+#EXPAND SETVAR: "%(opt001)"="a b c"
+SETOPT opt001=!c d
+#EXPAND SETOPT: "%(opt001)"="a b !c d"
+OPTDEFAULT opt001=!a !b !c !d !e
+#EXPAND OPTDEFAULT: "%(opt001)"="a b !c d !e"
+SETOPT opt002=a b
+#EXPAND SETOPT: "%(opt002)"="a b"
+OPTDEFAULT opt002=!a !b !c !d !e
+#EXPAND OPTDEFAULT: "%(opt001)"="a b !c !d !e"
 
