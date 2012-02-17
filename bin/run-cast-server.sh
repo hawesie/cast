@@ -63,8 +63,9 @@ echo Python server pid: ${PY_SERVER_JOB}
 
 
 # if we're killed, take down everyone else with us
-trap "kill ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB}; sleep 2; kill -q -9 ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB} 2>/dev/null" INT TERM EXIT
-
+trap "kill ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB}; kill -q -9 ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB} 2>/dev/null" INT TERM EXIT
+# use the following if running with gprof, adds a sleep before 
+# trap "kill ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB}; sleep 5; kill -q -9 ${CPP_SERVER_JOB} ${JAVA_SERVER_JOB} ${PY_SERVER_JOB} 2>/dev/null" INT TERM EXIT
 wait
 
 # reset evn vars

@@ -79,6 +79,7 @@ public class CASTClient extends LoggingApplication {
 				}
 				else if (args[i].equals("--debug-parser")) {
 					CASTConfigParser.m_bDebug = true;
+					CASTConfigParser.m_bPrintHostInfo = true;
 				}
 				else if (args[i].equals("--parse-only")) {
 					CASTConfigParser.m_bParseOnly = true;

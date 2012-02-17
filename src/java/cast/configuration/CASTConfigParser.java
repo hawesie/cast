@@ -159,24 +159,6 @@ public class CASTConfigParser {
 
 	private static final String PYTHON_FLAG = "PYTHON";
 
-	private static final String PREPROC_IFTRUE = "IFTRUE";
-	private static final String PREPROC_TRUEVALUES = ".true.yes.on.1.2.3.4.5.6.7.8.9.";
-
-	private static final String PREPROC_IFFALSE = "IFFALSE";
-	private static final String PREPROC_FALSEVALUES = ".false.no.off.0.."; // last is empty string
-
-	private static final String PREPROC_IFEQ = "IFEQ";
-
-	private static final String PREPROC_IFNOTEQ = "IFNEQ";
-
-	private static final String PREPROC_IFOPTANY = "IFOPTANY";
-
-	private static final String PREPROC_IFOPTALL = "IFOPTALL";
-
-	private static final String PREPROC_ELSE = "ELSE";
-
-	private static final String PREPROC_ENDIF = "ENDIF";
-
 	private static ArchitectureConfiguration m_architecture;
 
 	private static String m_defaultHost;
@@ -207,12 +189,32 @@ public class CASTConfigParser {
 
 	private static String CMD_VARSET = "SETVAR";
 	private static String CMD_VARDEFAULT = "VARDEFAULT";
+	private static String CMD_OPTSET = "SETOPT";
+	private static String CMD_OPTDEFAULT = "OPTDEFAULT";
 
 	// Special variables for host names are stored internally with 'host:' prefix.
 	// They are treated specially in parseSetvarLine and replaceVars.
 	private static String CMD_SETHOST = "HOSTNAME";
 	private static String HOSTVAR_PREFIX = "host:";
 	private static String HOSTVAR_LOCALHOST = HOSTVAR_PREFIX + "localhost";
+
+	private static final String PREPROC_IFTRUE = "IFTRUE";
+	private static final String PREPROC_TRUEVALUES = ".true.yes.on.1.2.3.4.5.6.7.8.9.";
+
+	private static final String PREPROC_IFFALSE = "IFFALSE";
+	private static final String PREPROC_FALSEVALUES = ".false.no.off.0.."; // last is empty string
+
+	private static final String PREPROC_IFEQ = "IFEQ";
+
+	private static final String PREPROC_IFNOTEQ = "IFNEQ";
+
+	private static final String PREPROC_IFOPTANY = "IFOPTANY";
+
+	private static final String PREPROC_IFOPTALL = "IFOPTALL";
+
+	private static final String PREPROC_ELSE = "ELSE";
+
+	private static final String PREPROC_ENDIF = "ENDIF";
 
 	public static final String VAR_CURRENT_DIR = "CURRENT_DIR";
 
@@ -1001,7 +1003,46 @@ public class CASTConfigParser {
 		}
 
 		value = replaceAllVars(value);
-		//System.out.println(token + " ... Value ... " + value);
+
+		if ((cmd.equals(CMD_OPTSET) || cmd.equals(CMD_OPTDEFAULT)) && m_configVars.containsKey(token)) {
+			boolean newFlagsOnly = cmd.equals(CMD_OPTDEFAULT);
+			String curval = m_configVars.get(token);
+			String[] curFlags = replaceAllVars(curval).split("[ \t]");
+			String[] modFlags = value.split("[ \t]");
+			if (curFlags.length > 0 && modFlags.length > 0) {
+				String[] newFlags = new String[modFlags.length];
+				int nNew = 0;
+				for (int im = 0; im < modFlags.length; im++) {
+					String[] cm = parseFlag(modFlags[im]);
+					boolean found = false;
+					for (int ic = 0; ic < curFlags.length; ic++) {
+						String[] cf = parseFlag(curFlags[ic]);
+						if (! cf[0].equals(cm[0]))
+							continue;
+						found = true;
+						if (!newFlagsOnly) {
+							curFlags[ic] = modFlags[im];
+						}
+					}
+					if (!found) {
+						newFlags[nNew] = modFlags[im];
+						nNew++;
+					}
+				}
+				StringBuffer os = new StringBuffer();
+				for (String s : curFlags) {
+					os.append(s);
+					os.append(" ");
+				}
+				for (int im = 0; im < nNew; im++) {
+					os.append(newFlags[im]);
+					os.append(" ");
+				}
+				value = os.toString();
+			}
+		}
+
+		//System.out.println("***" + cmd + ": " + token + " = " + value);
 		m_configVars.put(token, value);
 
 		return i;
@@ -1022,11 +1063,16 @@ public class CASTConfigParser {
 		String value = m.group(3);
 
 		token = HOSTVAR_PREFIX + token;
-		value = expandComponentHost(value);
 
-		if (m_bPrintHostInfo) System.out.println(token + "=" + value);
+		// HOSTNAME works like VARDEFAULT
+		if (! m_configVars.containsKey(token)) {
+			value = replaceExistingVars(value);
+			value = expandComponentHost(value);
 
-		m_configVars.put(token, value);
+			if (m_bPrintHostInfo) System.out.println(token + "=" + value);
+			m_configVars.put(token, value);
+		}
+
 		return i;
 	}
 
@@ -1052,7 +1098,7 @@ public class CASTConfigParser {
 			//System.out.println(token);
 
 			if (token.startsWith(HOSTVAR_PREFIX)) {
-			  String value = expandHostVar(token);
+				String value = expandHostVar(token);
 				res = res + line.substring(lastpos, pos) + value;
 			}
 			else if (m_configVars.containsKey(token)) {
@@ -1270,44 +1316,82 @@ public class CASTConfigParser {
 		_lines.clear();
 		boolean headerFound = false;
 		boolean blockEnabled = true;
+		boolean prevEnabled = true;
+		int skipCount = 0;
 		PreprocStack stack = new PreprocStack();
+		String tmp;
 
 		for (int i = 0; i < orgLines.size(); i++) {
 			String line = (String) orgLines.get(i);
-			if (m_bDebug && _lines.size() > 0) {
-				System.out.println(_lines.get(_lines.size() - 1));
+			line = line.trim();
+
+			if (! blockEnabled) {
+				skipCount++;
 			}
 
-			line = line.trim();
 			if (line.startsWith(COMMENT_CHAR)) {
 				if (m_bDebug && line.startsWith(COMMENT_CHAR + "EXPAND")) {
-					_lines.add(replaceAllVars(line));
+					tmp = replaceAllVars(line);
+					System.out.println(tmp);
 				}
-				else {
-					_lines.add(line);
-				}
+				_lines.add(line);
 				continue;
 			}
 			else if (isPreproc(line)) {
-				String extra = "";
-				if (m_bDebug && (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF))) {
-					extra = " <-- " + stack.topStartLine();
+				String stackTop = "";
+				if (m_bDebug) {
+					stackTop = stack.topStartLine();
 				}
 				parsePreprocLine(line, stack);
+				prevEnabled = blockEnabled;
 				blockEnabled = stack.isBlockEnabled();
-				_lines.add(COMMENT_CHAR + line + extra);
+
+				_lines.add(COMMENT_CHAR + line);
+
+				if (m_bDebug) {
+					boolean skipStart = false;
+					boolean skipStop = false;
+					if (prevEnabled != blockEnabled) {
+						if (! blockEnabled) {
+							skipStart = true;
+							skipCount = 0;
+						}
+						else {
+							skipStop = true;
+						}
+					}
+					if (skipStop) {
+						System.out.println(String.format("%s ----- %d lines skipped -----",
+									COMMENT_CHAR, skipCount));
+					}
+					if (line.startsWith(PREPROC_ELSE) || line.startsWith(PREPROC_ENDIF)) {
+						System.out.println(line + " # <-- " + stackTop);
+					}
+					else {
+						System.out.println(line);
+					}
+					if (skipStart) {
+						System.out.println(COMMENT_CHAR + " ----- skipping block -----");
+					}
+				}
 				continue;
 			}
-
-			if (! blockEnabled) {
+			else if (! blockEnabled) {
 				_lines.add(COMMENT_CHAR + " -- " + line);
+				continue;
 			}
-			else if (isHeader(line)) {
+			
+			if (m_bDebug) {
+				System.out.println(line);
+			}
+
+			if (isHeader(line)) {
 				headerFound = true;
 				_lines.add(replaceExistingVars(line));
 			}
 			else {
-				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)) {
+				if (line.startsWith(CMD_VARSET) || line.startsWith(CMD_VARDEFAULT)
+						|| line.startsWith(CMD_OPTSET) || line.startsWith(CMD_OPTDEFAULT)) {
 					i = parseSetvarLine(orgLines, i);
 					_lines.add(COMMENT_CHAR + line);
 				}
@@ -1315,10 +1399,12 @@ public class CASTConfigParser {
 					if (headerFound) {
 						System.err.println(ERROR_LABEL + CMD_SETHOST +
 								" directives must preceede any other directives"
-								+ " except " + CMD_VARSET + " and " + CMD_VARDEFAULT + ".");
+								+ " except: " + CMD_VARSET + "," + CMD_VARDEFAULT
+								+ ", " + CMD_OPTSET + ", " + CMD_OPTDEFAULT
+								+ " and conditional statements.");
 					}
 					else
-					   	i = parseSethostLine(orgLines, i);
+						i = parseSethostLine(orgLines, i);
 
 					_lines.add(COMMENT_CHAR + line);
 				}
@@ -1329,7 +1415,7 @@ public class CASTConfigParser {
 		}
 		if (! stack.isEmpty()) {
 			throw new PreprocException("Unterminated conditional statements found:\n****\n"
-				   	+ stack.dump() + "\n****\n");
+					+ stack.dump() + "\n****\n");
 		}
 	}
 
@@ -1910,3 +1996,4 @@ public class CASTConfigParser {
 	}
 
 }
+/* vim: set sw=4 ts=4 noet list :vim */

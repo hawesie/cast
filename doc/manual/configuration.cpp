@@ -308,6 +308,44 @@ with relative filenames:
 SETVAR camera_config=%(CURRENT_DIR)/config/camera.ini
 \endverbatim
 
+
+\section config_options Setting and using options
+(SETOPT, OPTDEFAULT introduced in version 2.1.16b)
+
+The commands <code>SETOPT</code> and <code>OPTDEFAULT</code> are similar to
+<code>SETVAR</code> and <code>VARDEFAULT</code> except that they operate on
+individual space-delimited flags that are containted in a variable.  A flag is
+set if it is contained in the variable and is NOT prefixed with '!', otherwise
+it is unset (see also section \ref conditional_directives about
+<code>IFOPTALL</code> and <code>IFOPTANY</code>).
+
+In the following example three flags are used: 'design', 'code' and 'test'.
+After the first <code>SETOPT</code> the flag 'code' is set, 'design' is unset
+because it is missing and 'test' is unset because it is prefixed with '!'.
+
+\verbatim
+SETOPT todo=code !test
+OPTDEFAULT todo=design code test
+SETOPT todo=!design test
+\endverbatim
+
+After <code>OPTDEFAULT</code> the flags 'code' and 'test' remain unchaged
+because they are already present in 'todo'. The flag 'design' is added to the
+list and the value of 'todo' is now:
+
+\verbatim
+   todo=code !test design
+\endverbatim
+
+The second <code>SETOPT</code> changes the values of the flags 'design' and
+'test' so that the value becomes:
+
+\verbatim
+   todo=code test !design
+\endverbatim
+
+
+
 \section config_distributed Distributed execution
 (HOSTNAME introduced in version 2.1.13)
 
@@ -320,6 +358,10 @@ To make the configuration files more portable, the command
 configuration file before any other command except <code>SETVAR</code>,
 <code>VARDEFAULT</code> and <code>INCLUDE</code> (which can again include only
 the four commands mentioned here).
+
+From version 2.1.16b HOSTNAME behaves like VARDEFAULT, while before it behaved
+more like SETVAR. Additionally variables that are present in the value part
+are expanded.
 
 The defined host-name can be used in the form <code>[host-name]</code> anywhere
 a host address is recognized by the config parser, as described with each
@@ -334,9 +376,11 @@ to an instance of the Player server which is also running on the host
 <code>PlayerHost</code>.
 
 \verbatim
+SETVAR     myotherhost=[Main]
 HOSTNAME   Main        localhost
 HOSTNAME   PlayerHost  192.168.26.34
 HOSTNAME   LaserHost   [Main]
+HOSTNAME   OtherHost   %(myotherhost)
 
 HOST       [Main]
 COMPONENT  [LaserHost] CPP laser.server LaserServerPlayer --player-host %(host:PlayerHost)

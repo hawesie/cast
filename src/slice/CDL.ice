@@ -7,7 +7,7 @@ module cast
   module cdl
   {
 
-    const string CASTRELEASESTRING = "2.1.16 beta (Three Day Weekend)";
+    const string CASTRELEASESTRING = "2.1.16 (Three Day Weekend)";
 
     const int JAVASERVERPORT = 10111;
     const int CPPSERVERPORT = 10211;
