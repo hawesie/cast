@@ -34,7 +34,7 @@ syn keyword     castArchBaseType      contained TM WM skipwhite nextgroup=compon
 
 syn keyword     castInclude       contained INCLUDE  skipwhite nextgroup=castAny
 syn keyword     castHostname      contained HOSTNAME skipwhite nextgroup=componentParams
-syn keyword     castSetvar          contained SETVAR VARDEFAULT skipwhite nextgroup=castSetvarVariable
+syn keyword     castSetvar          contained SETVAR VARDEFAULT SETOPT OPTDEFAULT skipwhite nextgroup=castSetvarVariable
 syn match       castSetvarVariable  contained "[-_a-zA-Z0-9.@]\+" skipwhite nextgroup=castSetvarEqual
 syn match       castSetvarEqual     contained "=" skipwhite nextgroup=castSetvarValue,castMultiLine
 syn match       castSetvarValue     contained "\S\(.*\S\)\?\ze\s*" skipwhite contains=castComment
