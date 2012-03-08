@@ -1009,14 +1009,24 @@ public class CASTConfigParser {
 			String curval = m_configVars.get(token);
 			String[] curFlags = replaceAllVars(curval).split("[ \t]");
 			String[] modFlags = value.split("[ \t]");
+
 			if (curFlags.length > 0 && modFlags.length > 0) {
 				String[] newFlags = new String[modFlags.length];
 				int nNew = 0;
+
+				// For each flag in value, check if it already exists in the current
+				// flags (curFlags). If it doesn't add it (first to newFlags, then to new value).
+				// If the flag exists in current flags, change it, but only if SETOPT is being
+				// processed (newFlagsOnly = false).
 				for (int im = 0; im < modFlags.length; im++) {
 					String[] cm = parseFlag(modFlags[im]);
+					if (cm == null)
+						continue;
 					boolean found = false;
 					for (int ic = 0; ic < curFlags.length; ic++) {
 						String[] cf = parseFlag(curFlags[ic]);
+						if (cf == null)
+							continue;
 						if (! cf[0].equals(cm[0]))
 							continue;
 						found = true;
