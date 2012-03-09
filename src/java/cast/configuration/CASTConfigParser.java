@@ -1007,8 +1007,8 @@ public class CASTConfigParser {
 		if ((cmd.equals(CMD_OPTSET) || cmd.equals(CMD_OPTDEFAULT)) && m_configVars.containsKey(token)) {
 			boolean newFlagsOnly = cmd.equals(CMD_OPTDEFAULT);
 			String curval = m_configVars.get(token);
-			String[] curFlags = replaceAllVars(curval).split("[ \t]");
-			String[] modFlags = value.split("[ \t]");
+			String[] curFlags = replaceAllVars(curval).split("[ \t]+");
+			String[] modFlags = value.split("[ \t]+");
 
 			if (curFlags.length > 0 && modFlags.length > 0) {
 				String[] newFlags = new String[modFlags.length];
@@ -1019,16 +1019,19 @@ public class CASTConfigParser {
 				// If the flag exists in current flags, change it, but only if SETOPT is being
 				// processed (newFlagsOnly = false).
 				for (int im = 0; im < modFlags.length; im++) {
-					String[] cm = parseFlag(modFlags[im]);
-					if (cm == null)
+					String[] modflag = parseFlag(modFlags[im]);
+					if (modflag == null) {
 						continue;
+					}
 					boolean found = false;
 					for (int ic = 0; ic < curFlags.length; ic++) {
-						String[] cf = parseFlag(curFlags[ic]);
-						if (cf == null)
+						String[] curflag = parseFlag(curFlags[ic]);
+						if (curflag == null) {
 							continue;
-						if (! cf[0].equals(cm[0]))
+						}
+						if (! curflag[0].equals(modflag[0])) {
 							continue;
+						}
 						found = true;
 						if (!newFlagsOnly) {
 							curFlags[ic] = modFlags[im];
@@ -1244,10 +1247,10 @@ public class CASTConfigParser {
 		if (parts.length < 2) {
 			throw new PreprocException("Condition needs two values (v1, v2) in: " + line);
 		}
-		String[] flagParts = replaceAllVars(parts[1]).split("[ \t]");
+		String[] flagParts = replaceAllVars(parts[1]).split("[ \t]+");
 		if (flagParts.length < 1)
 			return true;
-		String[] valParts = replaceAllVars(parts[0]).split("[ \t]");
+		String[] valParts = replaceAllVars(parts[0]).split("[ \t]+");
 		for (String flag : flagParts) {
 			String[] pflag = parseFlag(flag);
 			if (pflag == null) {
