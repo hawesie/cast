@@ -23,15 +23,18 @@
 
 	    <pathelement location="/opt/local/share/java/jakarta-log4j.jar"/>	
 	    <pathelement location="/usr/share/java/log4j-1.2.jar"/>	
+	    <pathelement location="/usr/local/lib/log4j-1.2.jar"/>	
 	    <pathelement location="/usr/local/share/java/log4j-1.2.jar"/>	
 
 	    <pathelement location="/opt/local/share/java/ant-ice.jar"/>	
 	    <pathelement location="/usr/local/share/java/ant-ice.jar"/>
+    	<pathelement location="/usr/local/lib/ant-ice.jar"/>
 	    <pathelement location="/usr/share/java/ant-ice.jar"/>
 	    <pathelement location="/opt/share/java/ant-ice.jar"/>		
 	
 	    <pathelement location="/opt/local/share/java/Ice.jar"/>	
 	    <pathelement location="/usr/local/share/java/Ice.jar"/>
+	    <pathelement location="/usr/local/lib/Ice.jar"/>
 	    <pathelement location="/usr/share/java/Ice.jar"/>
 	    <pathelement location="/opt/share/java/Ice.jar"/>
 	</path>
