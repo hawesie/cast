@@ -17,7 +17,7 @@ if exists("b:current_syntax")
 endif
 
 syn keyword	castTodo	contained TODO FIXME XXX
-syn match       castBegin       "^" skipwhite nextgroup=castComponent,castArchComponentLang,castComment,castSetvar,castSubarch,castConditional,castEndConditional,castHostname,castInclude
+syn match       castBegin       "^" skipwhite nextgroup=castComponent,castArchComponentLang,castComment,castSetvar,castSubarch,castConditional,castEndConditional,castHostname,castInclude,castHost
 
 syn keyword     castSubarch       contained SUBARCHITECTURE nextgroup=castSubarchId skipwhite
 syn match       castSubarchId     contained "[-_a-zA-Z0-9.@]\+" nextgroup=castComment skipwhite
@@ -33,8 +33,9 @@ syn keyword     castArchComponentType contained MG UM skipwhite nextgroup=compon
 syn keyword     castArchBaseType      contained TM WM skipwhite nextgroup=componentClass
 
 syn keyword     castInclude       contained INCLUDE  skipwhite nextgroup=castAny
+syn keyword     castHost          contained HOST  skipwhite nextgroup=castAny
 syn keyword     castHostname      contained HOSTNAME skipwhite nextgroup=componentParams
-syn keyword     castSetvar          contained SETVAR VARDEFAULT skipwhite nextgroup=castSetvarVariable
+syn keyword     castSetvar          contained SETVAR VARDEFAULT SETOPT OPTDEFAULT skipwhite nextgroup=castSetvarVariable
 syn match       castSetvarVariable  contained "[-_a-zA-Z0-9.@]\+" skipwhite nextgroup=castSetvarEqual
 syn match       castSetvarEqual     contained "=" skipwhite nextgroup=castSetvarValue,castMultiLine
 syn match       castSetvarValue     contained "\S\(.*\S\)\?\ze\s*" skipwhite contains=castComment
@@ -61,6 +62,7 @@ hi def link castSubarchId	Title
 
 hi def link castHostname	Keyword
 hi def link castInclude		Keyword
+hi def link castHost		Keyword
 
 hi def link castComponent     Type
 hi def link castComponentLang Type
