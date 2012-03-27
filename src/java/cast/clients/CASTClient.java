@@ -152,6 +152,7 @@ public class CASTClient extends LoggingApplication {
 
 			// now get the extra, non-sa components
 			assert (CASTConfigParser.m_extras != null);
+			ArrayList<CASTComponentPrx> extras = new ArrayList<CASTComponentPrx>();
 			for (ComponentDescription cd : CASTConfigParser.m_extras) {
 				int compPort = -1;
 
@@ -178,17 +179,20 @@ public class CASTClient extends LoggingApplication {
 					assert (ts != null);
 					prx.setTimeServer(ts);
 					prx.configure(cd.configuration);
-					m_components.add(prx);
+					extras.add(prx);
 
 				} catch (ComponentCreationException e) {
 					e = new ComponentCreationException("While creating a "
 							+ cd.language
-							+ " component the following error occurred: "
+							+ " component '"
+                                                        + cd.componentName
+                                                        + "' the following error occurred: "
 							+ e.message);
 					throw e;
 				}
 
 			}
+			m_components.addAll(0, extras);
 
 			startComponents();
 
