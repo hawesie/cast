@@ -42,8 +42,8 @@ fun! CastGetIndent(lnum)
   let cast_multiline_open_regex = '=\s*<multiline>\s*$'
   let cast_multiline_close_regex = '^\s*</multiline>'
 
-  let cast_indent_begin_regex = '^\s*\(IFEQ\|IFNEQ\|IFOPTANY\|IFOPTALL\|IFTRUE\|IFFALSE\|ELSELSE\)\s*'
-  let cast_indent_end_regex = '^\s*\(ENDIF\)\s*'
+  let cast_indent_begin_regex = '^\s*\(IFEQ\|IFNEQ\|IFOPTANY\|IFOPTALL\|IFTRUE\|IFFALSE\|ELSE\)\s*'
+  let cast_indent_end_regex = '^\s*\(ELSE\|ENDIF\)\s*'
 
   " Add
   if previous_line =~? cast_indent_comment_line " Handle comments
