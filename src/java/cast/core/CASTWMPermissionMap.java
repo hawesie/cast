@@ -3,6 +3,8 @@ package cast.core;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
+import org.apache.log4j.Logger;
+
 import cast.cdl.WorkingMemoryPermissions;
 import cast.core.CASTUtils;
 
@@ -14,6 +16,9 @@ import cast.core.CASTUtils;
  * 
  */
 public class CASTWMPermissionMap {
+
+	private final static Logger m_logger = Logger
+			.getLogger(CASTWMPermissionMap.class);
 
 	/**
 	 * Holder class for all related items
@@ -296,6 +301,12 @@ public class CASTWMPermissionMap {
 		return perm;
 	}
 
+	/**
+	 * WARNING: Does not check who owns this.
+	 * 
+	 * @param _id
+	 * @throws InterruptedException
+	 */
 	public void remove(String _id) throws InterruptedException {
 
 		PermissionsStruct ps = null;
@@ -308,44 +319,32 @@ public class CASTWMPermissionMap {
 			// cout<<"CASTWMPermissionsMap::remove: returning on missing
 			// entry"<<_id<<endl;
 			unlockMap();
-			return;
 		}
 		// if it's not locked, then no problem
 		else if (ps.m_lockCount == 0) {
 			m_permissions.remove(_id);
 			unlockMap();
-			return;
 		}
 		// if it is locked, then schedule it for deletion
 		else {
 			ps.m_scheduledForDeletion = true;
-		}
 
-		// if we get here, then the mutex is locked by someone... uhoh
-		// get the mutex and clean up while we are in lock
-		mutex = ps.m_mutex;
+			m_logger.warn("Deleting WM entry " + _id + " which has "
+					+ ps.m_lockCount + " remaining lock(s)");
 
-		while (ps.m_lockCount > 0) {
-			// unlock for the block
+			// if we get here, then the mutex is locked by someone... uhoh
+			// get the mutex and clean up while we are in lock
+			while (ps.m_lockCount > 0) {
+				// unlock for the block
+				ps.m_mutex.release();
+				ps.m_lockCount--;
+			}
 
+			// once we hget here the map is locked and the lock count is 0, so
+			// we're good to go again
+			m_permissions.remove(_id);
 			unlockMap();
-
-			// try to lock it
-			mutex.acquire();
-
-			// then lock up again when we have it
-			lockMap();
-
-			mutex.release();
-			// need to get a new iterator
-			ps = m_permissions.get(_id);
-
 		}
-
-		// once we hget here the map is locked and the lock count is 0, so
-		// we're good to go again
-		m_permissions.remove(_id);
-		unlockMap();
 	}
 
 	public String getLockHolder(String _id) {

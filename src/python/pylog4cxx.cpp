@@ -19,14 +19,19 @@
 #include "cast/core/CASTComponent.hpp"
 #include "cast/core/Logging.hpp"
 
+#include <string>
+
 using namespace log4cxx;
 using namespace log4cxx::helpers;
 namespace castlog = cast::core::logging;
+static cast::CASTComponent::ComponentLoggerPtr LOG = castlog::ComponentLogger::getLogger("pylog4cxx");
+static castlog::LogAdditions ADD("pylog4cxx", "None", "");
 
 static void doex(Exception& ex)
 {
    try {
      printf("*** PyLog4Cxx Error: %s\n", ex.what());
+     CAST_LOG(LOG, Level::getDebug(), ex.what(), ADD);
    }
    catch (...) {}
 }
@@ -156,21 +161,27 @@ Logger_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     LoggerObject *self;
 
     self = (LoggerObject *)type->tp_alloc(type, 0);
-    if (self != NULL) {
+    if (self == NULL) {
+      printf("*** PyLog4Cxx Error: Failed to Allocate LoggerObject\n");
+    }
+    else {
        self->id = PyString_FromString("");
        if (self->id == NULL) {
+         printf("*** PyLog4Cxx Error: Failed to Allocate String LoggerObject.id\n");
          Py_DECREF(self);
          return NULL;
        }
 
        self->subarch = PyString_FromString("");
        if (self->subarch == NULL) {
+         printf("*** PyLog4Cxx Error: Failed to Allocate String LoggerObject.subarch\n");
          Py_DECREF(self);
          return NULL;
        }
 
        self->color = PyString_FromString("");
        if (self->color == NULL) {
+         printf("*** PyLog4Cxx Error: Failed to Allocate String LoggerObject.color\n");
          Py_DECREF(self);
          return NULL;
        }
@@ -185,20 +196,30 @@ Logger_init(LoggerObject *self, PyObject *args, PyObject *kwds)
    static char *kwlist[] = {"id", "subarch", "color", NULL};
    PyObject *id=NULL, *subarch=NULL, *color=NULL, *tmp;
 
+   if (!self) {
+     return -1;
+   }
+
    if (! PyArg_ParseTupleAndKeywords(args, kwds, "|SSS", kwlist, &id, &subarch, &color))
       return -1; 
 
 #define PYOBJ_REPLACE(pyobj, onew) \
-   if (onew) { tmp = pyobj; Py_INCREF(onew); pyobj = onew; Py_DECREF(tmp); }
+   if (onew) { tmp = pyobj; Py_INCREF(onew); pyobj = onew; if (tmp) Py_DECREF(tmp); }
    PYOBJ_REPLACE(self->id, id);
    PYOBJ_REPLACE(self->subarch, subarch);
    PYOBJ_REPLACE(self->color, color);
 #undef PYOBJ_REPLACE
 
    char* pid = PyString_AsString(self->id);
+   //CAST_LOG(LOG, Level::getDebug(), pid, ADD);
    try {
       self->logger = castlog::ComponentLogger::getLogger(pid);
-      self->logger->setLevel(Level::getDebug());
+      if (! self->logger) {
+         self->logger = castlog::ComponentLogger::getLogger(std::string(pid) + ".main");
+      }
+      if (! self->logger) {
+         CAST_LOG(LOG, Level::getDebug(), std::string("FAILED to getLogger ") + std::string(pid), ADD);
+      }
    }
    catch(Exception& ex) {
       doex(ex);
