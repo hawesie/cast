@@ -326,29 +326,14 @@ namespace cast {
     //if it is locked, then schedule it for deletion
     else {
       i->second.m_scheduledForDeletion = true;
-    }
+	  i->second.m_lockCount = 0;		
+      unlockMutex(&(i->second.m_mutex));
     
-    
-    //if we get here, then the mutex is locked by someone... uhoh
-    //get the mutex and clean up while we are in lock
-    pthread_mutex_t * mutex(&(i->second.m_mutex));    
-    while(i->second.m_lockCount > 0) {
-      //unlock for the block
-      unlockMap();
-      //try to lock it
-      lockMutex(mutex);
-      //then lock up again when we have it
-      lockMap();
-      //try to lock it
-      unlockMutex(mutex);
-      //need  to get a new iterator
-      i = m_permissionsMap.find(_id);
-    }
-    
-    //once we hget here the map is locked and the lock count is 0, so
-    //we're good to go again
-    m_permissionsMap.erase(i);
-    unlockMap();       
+      //once we hget here the map is locked and the lock count is 0, so
+      //we're good to go again
+      m_permissionsMap.erase(i);
+      unlockMap();       
+	}
   }
   
   const std::string & CASTWMPermissionsMap::getLockHolder(const std::string & _id) const {

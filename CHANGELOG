@@ -1,6 +1,12 @@
+2.1.17
+
+2012-06-1  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+
+  * Changed behaviour of WM so that locked entries are deleted straight away if deleting component is the lock holder. 
+
 2.1.16
 
-2012-10-03  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
+2012-03-10  Nick Hawes  <n.a.hawes@cs.bham.ac.uk>
 
   * Added the ability to route log4j and log4cxx messages to a remote log server via Ice. This option can be enabled in the log4j.properties file, and an example is included as config/log4j,properties.remote. A server is also provided which can be run using `cast-log-server`. This behaves like any standard log4j executable and can be configured via a property file in exactly the same way as a CAST component. This is described in detail in the log for the 2.1.5 release below. One consequence of this is that you can't run cast-log-server from the same directory as cast-server if you're using a properties file in the same directory. 
 
