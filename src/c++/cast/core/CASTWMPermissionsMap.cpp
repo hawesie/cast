@@ -1,6 +1,7 @@
 
 #include "CASTWMPermissionsMap.hpp"
 #include "CASTUtils.hpp"
+#include "Logging.hpp"
 
 #include <iostream>
 using namespace std;
@@ -325,10 +326,17 @@ namespace cast {
     }
     //if it is locked, then schedule it for deletion
     else {
-      i->second.m_scheduledForDeletion = true;
+       log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("CASTWMPermissionsMap"));
+		LOG4CXX_WARN(logger, "Deleting WM entry " << _id << " which has "
+			<< i->second.m_lockCount << " remaining lock(s)");
+
+
+  	  i->second.m_scheduledForDeletion = true;
 	  i->second.m_lockCount = 0;		
       unlockMutex(&(i->second.m_mutex));
     
+	
+
       //once we hget here the map is locked and the lock count is 0, so
       //we're good to go again
       m_permissionsMap.erase(i);
